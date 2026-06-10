@@ -1,0 +1,33 @@
+{
+  "atmos_schema": "1.17",
+  "room_count": 1,
+  "timeline": {
+    "unlocked_through": 3
+  },
+  "osc": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "status": "대기 중"
+  },
+  "audio_device": {
+    "name": "Samsung USB C Earphones",
+    "index": 1,
+    "output_channels": 2,
+    "hostapi": "Core Audio"
+  },
+  "rooms": [
+    {
+      "id": 1,
+      "order_index": 0,
+      "name": "🚪 룸 1",
+      "master_volume": 1.0,
+      "master_volume_percent": 100,
+      "osc_clear": "",
+      "tracks": []
+    }
+  ],
+  "atmos_preset": {
+    "exported_at": "2026-05-31T20:48:46",
+    "source": "ui_snapshot"
+  }
+}

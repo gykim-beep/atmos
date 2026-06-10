@@ -1,0 +1,185 @@
+{
+  "atmos_schema": "1.17",
+  "room_count": 4,
+  "timeline": {
+    "active_room_id": 1,
+    "unlocked_through": 1
+  },
+  "osc": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "status": "대기 중"
+  },
+  "audio_device": {
+    "name": "Samsung USB C Earphones",
+    "index": 1,
+    "output_channels": 2,
+    "hostapi": "Core Audio"
+  },
+  "rooms": [
+    {
+      "id": 1,
+      "order_index": 0,
+      "name": "🚪 룸 1",
+      "master_volume": 1.0,
+      "master_volume_percent": 100,
+      "osc_clear": "",
+      "tracks": [
+        {
+          "track_id": "r1_t3_bec266",
+          "file": "/Users/Allweno/Downloads/looperman-l-1314288-0401396-1980s-synth-ultrasour-nightclub.wav",
+          "custom_name": "looperman-l-1314288-0401396-1980s-synth-ultrasour-nightclub",
+          "osc_play": "",
+          "osc_stop": "",
+          "volume": 0.75,
+          "volume_percent": 75,
+          "loop": true,
+          "is_bgm": true,
+          "output_ch": 0
+        },
+        {
+          "track_id": "r1_t4_8cc999",
+          "file": "/Users/Allweno/Downloads/looperman-l-1414881-0392618-glow-modern-pop-electric-guitar.wav",
+          "custom_name": "looperman-l-1414881-0392618-glow-modern-pop-electric-guitar",
+          "osc_play": "",
+          "osc_stop": "",
+          "volume": 0.75,
+          "volume_percent": 75,
+          "loop": false,
+          "is_bgm": false,
+          "output_ch": 0
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "order_index": 1,
+      "name": "🚪 룸 2",
+      "master_volume": 1.0,
+      "master_volume_percent": 100,
+      "osc_clear": "",
+      "tracks": [
+        {
+          "track_id": "r2_t1_d1d6ed",
+          "file": "/Users/Allweno/Downloads/looperman-l-5866681-0398978-letting-go.wav",
+          "custom_name": "looperman-l-5866681-0398978-letting-go",
+          "osc_play": "",
+          "osc_stop": "",
+          "volume": 1.0,
+          "volume_percent": 100,
+          "loop": true,
+          "is_bgm": true,
+          "output_ch": 0
+        },
+        {
+          "track_id": "r2_t2_74b8e4",
+          "file": "/Users/Allweno/Downloads/raf beat(Bbm 143 @prodallweno).wav",
+          "custom_name": "raf beat(Bbm 143 @prodallweno)",
+          "osc_play": "",
+          "osc_stop": "",
+          "volume": 0.703,
+          "volume_percent": 70,
+          "loop": true,
+          "is_bgm": true,
+          "output_ch": 0
+        },
+        {
+          "track_id": "r2_t3_ea0a34",
+          "file": "/Users/Allweno/Downloads/higher (Ebm 86) vox.wav",
+          "custom_name": "higher (Ebm 86) vox",
+          "osc_play": "",
+          "osc_stop": "",
+          "volume": 0.75,
+          "volume_percent": 75,
+          "loop": false,
+          "is_bgm": false,
+          "output_ch": 0
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "order_index": 2,
+      "name": "🚪 룸 3",
+      "master_volume": 1.0,
+      "master_volume_percent": 100,
+      "osc_clear": "",
+      "tracks": [
+        {
+          "track_id": "r3_t1_2b3f6c",
+          "file": "/Users/Allweno/Downloads/157-l-4445961-0392382-rock-guitar-loop.wav",
+          "custom_name": "157-l-4445961-0392382-rock-guitar-loop",
+          "osc_play": "",
+          "osc_stop": "",
+          "volume": 0.75,
+          "volume_percent": 75,
+          "loop": true,
+          "is_bgm": true,
+          "output_ch": 0
+        },
+        {
+          "track_id": "r3_t2_f86fa4",
+          "file": "/Users/Allweno/Downloads/178-l-2560975-0392895-summer-vibes-guitar-yolo-brebeats-x-lian-wolf.wav",
+          "custom_name": "178-l-2560975-0392895-summer-vibes-guitar-yolo-brebeats-x-lian-wolf",
+          "osc_play": "",
+          "osc_stop": "",
+          "volume": 0.75,
+          "volume_percent": 75,
+          "loop": true,
+          "is_bgm": true,
+          "output_ch": 0
+        },
+        {
+          "track_id": "r3_t3_afea9e",
+          "file": "/Users/Allweno/Downloads/looperman-l-1414881-0392624-golden-hour-upbeat-pop-acoustic-guitar.wav",
+          "custom_name": "looperman-l-1414881-0392624-golden-hour-upbeat-pop-acoustic-guitar",
+          "osc_play": "",
+          "osc_stop": "",
+          "volume": 0.75,
+          "volume_percent": 75,
+          "loop": false,
+          "is_bgm": false,
+          "output_ch": 0
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "order_index": 3,
+      "name": "🚪 룸 4",
+      "master_volume": 1.0,
+      "master_volume_percent": 100,
+      "osc_clear": "",
+      "tracks": [
+        {
+          "track_id": "r4_t1_5f438e",
+          "file": "/Users/Allweno/Downloads/102-l-5091060-0399730-safari-guitar-loop-part-1.wav",
+          "custom_name": "102-l-5091060-0399730-safari-guitar-loop-part-1",
+          "osc_play": "",
+          "osc_stop": "",
+          "volume": 0.75,
+          "volume_percent": 75,
+          "loop": true,
+          "is_bgm": true,
+          "output_ch": 0
+        },
+        {
+          "track_id": "r4_t2_1fa567",
+          "file": "/Users/Allweno/Downloads/178-l-2560975-0392895-summer-vibes-guitar-yolo-brebeats-x-lian-wolf.wav",
+          "custom_name": "178-l-2560975-0392895-summer-vibes-guitar-yolo-brebeats-x-lian-wolf",
+          "osc_play": "",
+          "osc_stop": "",
+          "volume": 0.75,
+          "volume_percent": 75,
+          "loop": false,
+          "is_bgm": false,
+          "output_ch": 0
+        }
+      ]
+    }
+  ],
+  "atmos_preset": {
+    "exported_at": "2026-05-31T23:15:45",
+    "source": "ui_snapshot"
+  }
+}

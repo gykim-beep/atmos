@@ -1,0 +1,101 @@
+{
+  "atmos_schema": "1.17",
+  "room_count": 2,
+  "timeline": {
+    "active_room_id": 0,
+    "unlocked_through": 0
+  },
+  "osc": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "status": "대기 중"
+  },
+  "audio_device": {
+    "name": "Samsung USB C Earphones",
+    "index": 1,
+    "output_channels": 2,
+    "hostapi": "Core Audio"
+  },
+  "rooms": [
+    {
+      "id": 1,
+      "order_index": 0,
+      "name": "🚪 룸 1",
+      "master_volume": 1.0,
+      "master_volume_percent": 100,
+      "osc_clear": "",
+      "tracks": [
+        {
+          "track_id": "r1_t1_4a6425",
+          "file": "/Users/Allweno/Downloads/110-l-4662206-0400604-pharrell-williams-x-the-neptunes-x-2000s-dance.wav",
+          "custom_name": "110-l-4662206-0400604-pharrell-williams-x-the-neptunes-x-2000s-dance",
+          "osc_play": "",
+          "osc_stop": "",
+          "volume": 0.838,
+          "volume_percent": 83,
+          "loop": true,
+          "is_bgm": true,
+          "output_ch": 0
+        },
+        {
+          "track_id": "r1_t2_7edaa1",
+          "file": "/Users/Allweno/Downloads/136-l-2504586-0398827-24-05-part-1.wav",
+          "custom_name": "136-l-2504586-0398827-24-05-part-1",
+          "osc_play": "",
+          "osc_stop": "",
+          "volume": 0.75,
+          "volume_percent": 75,
+          "loop": false,
+          "is_bgm": false,
+          "output_ch": 0
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "order_index": 1,
+      "name": "🚪 룸 2",
+      "master_volume": 1.0,
+      "master_volume_percent": 100,
+      "osc_clear": "",
+      "tracks": [
+        {
+          "track_id": "r2_t1_940032",
+          "file": "/Users/Allweno/Downloads/146-l-3738100-0400311-black-heart-lil-poppa-yungeen-ace-rod-wave.wav",
+          "custom_name": "146-l-3738100-0400311-black-heart-lil-poppa-yungeen-ace-rod-wave",
+          "osc_play": "",
+          "osc_stop": "",
+          "volume": 0.75,
+          "volume_percent": 75,
+          "loop": true,
+          "is_bgm": true,
+          "output_ch": 0
+        },
+        {
+          "track_id": "r2_t2_d4b83e",
+          "file": "/Users/Allweno/Downloads/157-l-4445961-0392382-rock-guitar-loop.wav",
+          "custom_name": "157-l-4445961-0392382-rock-guitar-loop",
+          "osc_play": "",
+          "osc_stop": "",
+          "volume": 0.75,
+          "volume_percent": 75,
+          "loop": false,
+          "is_bgm": false,
+          "output_ch": 0
+        },
+        {
+          "track_id": "r2_t3_bbf159",
+          "file": "/Users/Allweno/Downloads/159-l-2789070-0396483-vengence-polo-g-x-juice-wrld-type-guitar.wav",
+          "custom_name": "159-l-2789070-0396483-vengence-polo-g-x-juice-wrld-type-guitar",
+          "osc_play": "",
+          "osc_stop": "",
+          "volume": 0.75,
+          "volume_percent": 75,
+          "loop": false,
+          "is_bgm": false,
+          "output_ch": 0
+        }
+      ]
+    }
+  ]
+}
