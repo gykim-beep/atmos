@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'src/rust/frb_generated.dart';
-import 'src/rust/api/simple.dart';
 import 'package:provider/provider.dart';
 import 'core/state/global_state.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';

@@ -1,28 +1,64 @@
-# Atmos Mixer Pro Reconstruction Walkthrough
+# Atmos Mixer Pro - 전면 개편 작업 요약 (Walkthrough)
+
+이 문서는 기존의 단순 오디오 재생 아키텍처에서 벗어나 **Atmos_Mixer_Pro_UXUI_and_Features_Specs.md**의 세부 기능과 **Flutter_Rust_Harness_Rules.md**의 하네스 규칙을 100% 통합 적용한 [전면 개편 작업 내역]을 요약한 보고서입니다.
 
 > [!NOTE]
-> We successfully tore down the old Python-based setup and fully initialized the new Flutter + Rust hybrid architecture, strictly following the specifications in `docs/init/implementation_plan.md`. 추가 검토를 통해 계획서에 정의된 세부 UI 위젯들(VU 미터, 채널 스트립, 라우팅 매트릭스 등)까지 완벽하게 구현 및 연동을 완료했습니다.
+> 본 개편은 기존 Python 구현체(dummy/atmos-python)의 단점을 극복하고, 고성능 데스크톱 앱(Flutter+Rust)으로 완벽하게 전환하기 위한 필수적인 재설계 과정입니다.
 
-## 1. Rust Backend & Algorithms Porting
-The core logics have been successfully extracted from Python and written into standard, high-performance Rust:
-- **Audio Module**: Created `CPAL` engine wrapper and a custom software mixer (`audio/mixer.rs`). Ported the **ducking and fade-in/out mathematics** exactly as instructed.
-- **Config & OSC**: Built the `serde` based JSON loader for 1:1 compatibility. Integrated `rosc` with a 100ms sliding window debounce gate logic (`osc/debouncer.rs`).
-- **FFI Generation**: Generated `flutter_rust_bridge` bindings allowing Flutter to call functions like `getAvailableDevices()` and `startAudioEngine()`. *(Note: System cache was flushed to resolve disk space constraints during FFI generation).*
+---
 
-## 2. Flutter UI & State Management (Phase 1)
-- **Theming**: Implemented Obsidian Dark background with Neon Cyan/Magenta accents (`colors.dart`), paired with dynamic glassmorphism components (`glass_container.dart`).
-- **Dashboard**: Created a multi-channel console layout, wiring play/stop buttons to the Rust Audio Engine via `Provider`.
-- **2-Tab Preferences Modal**: Constructed a split configuration interface:
-    - **Tab 1: Audio Settings**: Fetches system audio devices from the Rust backend.
-    - **Tab 2: Room Signal & Routing**: Manages OSC endpoints and routing matrices.
+## 1. Rust 코어 백엔드 개편 (오디오 & OSC)
 
-## 3. 세부 UI 및 커스텀 컴포넌트 디버깅 & 추가 구현 (Phase 2)
-설계서(`implementation_plan.md`)를 재검토하여, 누락되었던 세부 커스텀 위젯들을 추가하고 대시보드에 완벽히 연동시켰습니다:
-- **`typography.dart` 추가**: 지정된 폰트 테마와 타이포그래피(H1, H2 등) 시스템 구축.
-- **`vu_meter.dart` 구현 (30fps High-Performance Rendering)**: `CustomPainter`를 활용해 가비지 컬렉터 부하 없이 네온 글로우(Neon Glow) 효과를 내는 그라데이션 LED VU 바 구현 완료.
-- **`channel_strip.dart` 및 `room_card.dart` 구현**: 개별 채널 제어를 위한 수직 슬라이더(Fader), Mute/Solo 버튼, 그리고 룸 단위 마스터 통제 위젯을 완성.
-- **`routing_matrix.dart` 구현**: 12x24 그리드 기반의 직관적인 라우팅 맵 테이블 UI 렌더링 추가.
-- **대시보드 레이아웃 갱신 완료**: Placeholder로 남아있던 빈 공간에 위에서 개발한 실제 위젯들을 모두 교체 및 바인딩 처리함.
+가장 핵심적인 오디오 믹싱 연산과 네트워크 통신 최적화를 수행했습니다.
 
-## Next Steps
-The user can now build and test the desktop application via standard Flutter commands (`flutter run -d macos`).
+*   **스마트 더킹 (Smart Ducking) 및 페이드 구현 (`audio/mixer.rs`)**:
+    *   **300ms 소프트 페이드**: `PlayInstance` 또는 `StopRoom` 명령어 수신 시 팝 노이즈를 방지하기 위해 300ms 길이에 해당하는 샘플 단위 페이드 인/아웃($O(1)$)을 적용했습니다.
+    *   **150ms/30% 더킹 (Ducking)**: `is_bgm` 플래그가 켜진 BGM 트랙은, 단발성 효과음(`sfx_active > 0`)이 재생되는 순간 **150ms 동안 볼륨이 30%로 감소**하며, 효과음이 끝나면 **300ms 동안 서서히 100% 볼륨으로 복구**됩니다.
+*   **250ms 디바운싱 강화 (`osc/debouncer.rs`)**:
+    *   물리적 아두이노 스위치에서 발생할 수 있는 노이즈(다중 트리거)를 차단하기 위해, 디바운스 기준값을 기존 100ms에서 **250ms로 상향 고정**했습니다.
+*   **Rust OSC & 엔진 통신 분리 (`audio/engine.rs` & `api/simple.rs`)**:
+    *   FRB (Flutter-Rust Bridge)의 StreamSink를 통해 OSC 수신 데이터를 비동기로 Flutter(UI) 스레드에 전달하도록 통합(`start_osc_server`)하여, UI 스레드와 오디오 믹싱 스레드가 완전히 분리된 '스레드 철의 장막' 원칙을 준수했습니다.
+
+---
+
+## 2. Flutter 프론트엔드 전면 개편 (UI/UX)
+
+기존의 실험적인 UI 컴포넌트(12x24 매트릭스 뷰, 채널 스트립)를 일괄 폐기하고, 오프라인 방탈출 통제실에 최적화된 인터페이스로 100% 교체했습니다.
+
+### 2.1 글로벌 테마 및 상태 관리
+*   **글로벌 색상 토큰 (`colors.dart`)**:
+    *   배경 `#0E0E1C`, 헤더 `#08080F`, 카드 바탕 `#161628` 및 지정된 네온/다크 옵시디언 컬러를 하드코딩하여 Specs 문서의 디자인을 완벽히 재현했습니다.
+*   **통합 상태 관리 (`global_state.dart`)**:
+    *   시스템 로그 100줄 제한 캐싱, 룸 잠금 상태(`_lockedRoomIds`), 현재 활성화된 룸(`_activeRoomId`) 상태 머신을 Provider에 등록했습니다.
+
+### 2.2 메인 대시보드 구조 (`dashboard_screen.dart`)
+*   **3단 분할 레이아웃**:
+    *   **글로벌 헤더 (Top, 60px)**: 테마 시작, 비상 정지(Panic), 리셋, 방 추가, 환경설정 버튼 및 아웃풋 디바이스 콤보박스가 배치되었습니다.
+    *   **룸 패널 (Middle, Expanded)**: 가로 스크롤 가능한 방(Room) 단위의 카드가 나열됩니다.
+    *   **시스템 로그 (Bottom, 155px)**: 순수 검정(`#000000`) 바탕에 초록색(`#22DD88`) 글씨가 출력되는 155px 고정 높이 터미널 로그 콘솔을 신설했습니다.
+
+### 2.3 개별 컴포넌트 고도화
+*   **룸 카드 (`room_card.dart`)**:
+    *   가로 350px 지정. 방마다 마스터 볼륨 페이더를 장착했습니다.
+    *   **[잠금(Lock) 오버레이]**: `global_state`의 잠금 판별에 따라, 이전 방을 클리어하지 않은 상태라면 회색 반투명 오버레이와 **`🔒 잠금 — 이전 룸을 클리어하세요`** 텍스트가 표시되며 모든 조작이 불가능(Disabled)해집니다.
+*   **트랙 카드 (`track_card.dart` 신설)**:
+    *   재생/정지 토글, 트랙 이름 텍스트박스, 개별 볼륨 슬라이더, 무한 루프(BGM/SFX 전환) 스위치, 우측 상단 ❌ 삭제 버튼을 직관적으로 재배치했습니다.
+
+### 2.4 환경설정 다이얼로그 (`preferences_modal.dart`)
+*   크기를 720x560 픽셀로 고정했습니다.
+*   **탭 1 (오디오 출력 설정)**:
+    *   12x24 버튼 행렬 형태의 매트릭스를 폐기하고, 각 트랙당 우측에 [CH 1] ~ [CH 24]의 아웃풋 채널을 선택하는 **1:1 콤보박스 뷰**로 직관성을 극대화했습니다.
+*   **탭 2 (아두이노 OSC 신호)**:
+    *   각 방별 클리어 신호(예: `/room1/clear`), 트랙 트리거 주소를 직접 타이핑할 수 있는 텍스트박스 매핑 UI를 구현했습니다.
+
+---
+
+## 3. 검증 (Validation)
+
+1.  **빌드 및 문법 검사 (0 Errors)**
+    *   `flutter analyze` 및 `cargo check`를 수행하여, 모든 코드 병합에서 에러가 발생하지 않음을 증명했습니다. (사소한 `withOpacity` 등의 경고 문구까지 모두 최신 Flutter 3 문법인 `withValues`로 대응 수정 완료)
+2.  **macOS 릴리즈 빌드 완료**
+    *   `flutter build macos` 명령이 정상적으로 컴파일에 성공하여 독립 실행 가능한 `.app` 패키지가 준비되었습니다.
+
+> [!TIP]
+> 이제 디렉터님께서는 해당 앱을 실행하여, 의도된 색상 토큰(다크 네온)과 부드러운 스크롤링, 하단의 실시간 155px 로그 창이 정상적으로 표시되는지 육안으로 확인하실 수 있습니다. 오디오가 재생되면 Rust 백엔드 단에서 스마트 더킹(150ms / 300ms 페이드)이 실시간 개입합니다.

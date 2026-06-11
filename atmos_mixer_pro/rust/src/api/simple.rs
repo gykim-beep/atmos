@@ -1,13 +1,16 @@
 use std::sync::{Arc, Mutex};
 use lazy_static::lazy_static;
+use flutter_rust_bridge::frb;
 use crate::audio::engine::AudioEngine;
 use crate::common::config::{load_config, AppConfig, RoomConfig, TrackConfig};
+use crate::osc::listener::OscServer;
 
 lazy_static! {
     static ref AUDIO_ENGINE: Mutex<AudioEngine> = Mutex::new(AudioEngine::new());
+    static ref OSC_SERVER: Mutex<OscServer> = Mutex::new(OscServer::new());
 }
 
-#[flutter_rust_bridge::frb(init)]
+#[frb(init)]
 pub fn init_app() {
     flutter_rust_bridge::setup_default_user_utils();
 }
@@ -38,4 +41,16 @@ pub fn get_available_devices() -> Vec<String> {
         }
     }
     devices
+}
+
+pub fn start_osc_server(port: u16, sink: flutter_rust_bridge::StreamSink<String>) -> Result<(), String> {
+    let server = OSC_SERVER.lock().unwrap();
+    server.start("0.0.0.0".to_string(), port, move |addr| {
+        let _ = sink.add(addr);
+    })
+}
+
+pub fn stop_osc_server() {
+    let server = OSC_SERVER.lock().unwrap();
+    server.stop();
 }

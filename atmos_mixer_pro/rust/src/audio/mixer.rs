@@ -11,6 +11,7 @@ impl AudioMixer {
         instances: &mut Vec<SoundInstance>,
         sfx_active: &mut usize,
         _active_room_id: usize,
+        sample_rate: u32,
     ) {
         for sample in buffer.iter_mut() {
             *sample = 0.0;
@@ -39,6 +40,23 @@ impl AudioMixer {
                 inst.duck_gain = inst.duck_start_gain + (inst.duck_target - inst.duck_start_gain) * progress;
                 if inst.duck_fade_left == 0 {
                     inst.duck_gain = inst.duck_target;
+                }
+            } else if inst.is_bgm {
+                // If we are a BGM, we check sfx_active and transition if needed
+                if *sfx_active > 0 && inst.duck_target != DUCK_GAIN {
+                    // Start ducking down (150ms)
+                    inst.duck_target = DUCK_GAIN;
+                    inst.duck_start_gain = inst.duck_gain;
+                    let duck_len = (sample_rate as f32 * 0.15) as usize; // 150ms
+                    inst.duck_fade_total = duck_len;
+                    inst.duck_fade_left = duck_len;
+                } else if *sfx_active == 0 && inst.duck_target != 1.0 {
+                    // Start ducking up (300ms)
+                    inst.duck_target = 1.0;
+                    inst.duck_start_gain = inst.duck_gain;
+                    let duck_len = (sample_rate as f32 * 0.3) as usize; // 300ms
+                    inst.duck_fade_total = duck_len;
+                    inst.duck_fade_left = duck_len;
                 }
             }
 
@@ -109,10 +127,7 @@ impl AudioMixer {
                 }
             }
 
-            let mut duck = inst.duck_gain;
-            if inst.is_bgm && *sfx_active > 0 {
-                duck = DUCK_GAIN;
-            }
+            let duck = inst.duck_gain;
 
             let gain = inst.volume * duck * inst.room_volume * inst.play_fade_gain;
             

@@ -27,7 +27,7 @@ impl OscServer {
 
         std::thread::spawn(move || {
             let mut buf = [0u8; rosc::decoder::MTU];
-            let mut debouncer = OscDebouncer::new(100);
+            let mut debouncer = OscDebouncer::new(250);
 
             while is_running.load(Ordering::SeqCst) {
                 match socket.recv_from(&mut buf) {

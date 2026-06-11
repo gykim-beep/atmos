@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/colors.dart';
-import '../../../core/theme/glass_container.dart';
 import '../widgets/preferences_modal.dart';
 
 class SettingsScreen extends StatelessWidget {
