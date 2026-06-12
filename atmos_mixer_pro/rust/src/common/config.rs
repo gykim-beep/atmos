@@ -1,69 +1,75 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::Read;
+use std::fs;
+use std::path::Path;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct TrackConfig {
-    #[serde(default)]
-    pub file: String,
-    #[serde(default)]
-    pub output_ch: usize,
-    #[serde(default = "default_volume")]
-    pub volume: f32,
-    #[serde(default)]
-    pub is_bgm: bool,
-    #[serde(default)]
-    pub loop_play: bool,
-    #[serde(default)]
-    pub osc_play: String,
-    #[serde(default)]
-    pub osc_stop: String,
-}
-
-fn default_volume() -> f32 { 0.75 }
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct RoomConfig {
-    #[serde(default)]
-    pub id: usize,
-    #[serde(default)]
-    pub name: String,
-    #[serde(default = "default_master_volume")]
-    pub master_volume: f32,
-    #[serde(default)]
-    pub osc_clear: String,
-    #[serde(default)]
-    pub tracks: Vec<TrackConfig>,
-}
-
-fn default_master_volume() -> f32 { 1.0 }
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
-    #[serde(default)]
-    pub audio_device: HashMap<String, String>,
-    #[serde(default = "default_osc")]
-    pub osc: OscConfig,
-    #[serde(default)]
+    pub osc_port: u16,
+    pub device_name: Option<String>,
+    pub buffer_size: u32,
     pub rooms: Vec<RoomConfig>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct OscConfig {
-    pub host: String,
-    pub port: u16,
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            osc_port: 8000,
+            device_name: None,
+            buffer_size: 256,
+            rooms: Vec::new(),
+        }
+    }
 }
 
-fn default_osc() -> OscConfig {
-    OscConfig { host: "0.0.0.0".to_string(), port: 8000 }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RoomConfig {
+    pub id: String,
+    pub name: String,
+    pub color_hex: String,
+    pub volume: f32, // 0.0 to 1.0
+    pub clear_osc_address: String,
+    pub tracks: Vec<TrackConfig>,
 }
 
-pub fn load_config(path: &str) -> Result<AppConfig, String> {
-    let mut file = File::open(path).map_err(|e| format!("Failed to open config file: {}", e))?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents).map_err(|e| format!("Failed to read config file: {}", e))?;
-    
-    let config: AppConfig = serde_json::from_str(&contents).map_err(|e| format!("Failed to parse config: {}", e))?;
-    Ok(config)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TrackConfig {
+    pub id: String,
+    pub name: String,
+    pub file_path: String,
+    pub volume: f32, // 0.0 to 1.0
+    pub is_loop: bool, // true = BGM, false = SFX
+    pub output_channel: u32, // 1 to 24 (1-indexed for user, mapped to 0-23 internally)
+    pub play_osc_address: String,
+    pub stop_osc_address: String,
+}
+
+impl AppConfig {
+    pub fn load_from_file<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
+        let path = path.as_ref();
+        if !path.exists() {
+            // 파일이 없으면 기본값으로 생성
+            let default_config = Self::default();
+            default_config.save_to_file(path)?;
+            return Ok(default_config);
+        }
+        let content = fs::read_to_string(path)?;
+        let config: AppConfig = serde_json::from_str(&content)?;
+        Ok(config)
+    }
+
+    pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> anyhow::Result<()> {
+        let content = serde_json::to_string_pretty(self)?;
+        // 부모 디렉토리가 없으면 생성
+        let path_ref = path.as_ref();
+        if let Some(parent) = path_ref.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        
+        // 원자적 쓰기(Atomic Write) 적용: tmp에 먼저 쓰고 rename (OS 수준 안전 보장)
+        let tmp_path = path_ref.with_extension("tmp");
+        fs::write(&tmp_path, content)?;
+        fs::rename(&tmp_path, path_ref)?;
+        
+        Ok(())
+    }
 }

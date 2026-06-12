@@ -3,6 +3,7 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
+import 'api/error.dart';
 import 'api/simple.dart';
 import 'common/config.dart';
 import 'dart:async';
@@ -23,10 +24,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AnyhowException dco_decode_AnyhowException(dynamic raw);
 
   @protected
-  Map<String, String> dco_decode_Map_String_String_None(dynamic raw);
+  RustStreamSink<String> dco_decode_StreamSink_String_Sse(dynamic raw);
 
   @protected
-  RustStreamSink<String> dco_decode_StreamSink_String_Sse(dynamic raw);
+  RustStreamSink<EngineStateUpdate>
+  dco_decode_StreamSink_engine_state_update_Sse(dynamic raw);
+
+  @protected
+  RustStreamSink<Float32List> dco_decode_StreamSink_list_prim_f_32_strict_Sse(
+    dynamic raw,
+  );
 
   @protected
   String dco_decode_String(dynamic raw);
@@ -35,19 +42,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AppConfig dco_decode_app_config(dynamic raw);
 
   @protected
+  AtmosError dco_decode_atmos_error(dynamic raw);
+
+  @protected
   bool dco_decode_bool(dynamic raw);
+
+  @protected
+  AppConfig dco_decode_box_autoadd_app_config(dynamic raw);
+
+  @protected
+  EngineStateUpdate dco_decode_engine_state_update(dynamic raw);
 
   @protected
   double dco_decode_f_32(dynamic raw);
 
   @protected
-  List<String> dco_decode_list_String(dynamic raw);
+  List<OutputDeviceInfo> dco_decode_list_output_device_info(dynamic raw);
+
+  @protected
+  Float32List dco_decode_list_prim_f_32_strict(dynamic raw);
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
-
-  @protected
-  List<(String, String)> dco_decode_list_record_string_string(dynamic raw);
 
   @protected
   List<RoomConfig> dco_decode_list_room_config(dynamic raw);
@@ -56,10 +72,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<TrackConfig> dco_decode_list_track_config(dynamic raw);
 
   @protected
-  OscConfig dco_decode_osc_config(dynamic raw);
+  String? dco_decode_opt_String(dynamic raw);
 
   @protected
-  (String, String) dco_decode_record_string_string(dynamic raw);
+  OutputDeviceInfo dco_decode_output_device_info(dynamic raw);
 
   @protected
   RoomConfig dco_decode_room_config(dynamic raw);
@@ -71,24 +87,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int dco_decode_u_16(dynamic raw);
 
   @protected
+  int dco_decode_u_32(dynamic raw);
+
+  @protected
   int dco_decode_u_8(dynamic raw);
 
   @protected
   void dco_decode_unit(dynamic raw);
 
   @protected
-  BigInt dco_decode_usize(dynamic raw);
-
-  @protected
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
   @protected
-  Map<String, String> sse_decode_Map_String_String_None(
+  RustStreamSink<String> sse_decode_StreamSink_String_Sse(
     SseDeserializer deserializer,
   );
 
   @protected
-  RustStreamSink<String> sse_decode_StreamSink_String_Sse(
+  RustStreamSink<EngineStateUpdate>
+  sse_decode_StreamSink_engine_state_update_Sse(SseDeserializer deserializer);
+
+  @protected
+  RustStreamSink<Float32List> sse_decode_StreamSink_list_prim_f_32_strict_Sse(
     SseDeserializer deserializer,
   );
 
@@ -99,21 +119,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AppConfig sse_decode_app_config(SseDeserializer deserializer);
 
   @protected
+  AtmosError sse_decode_atmos_error(SseDeserializer deserializer);
+
+  @protected
   bool sse_decode_bool(SseDeserializer deserializer);
+
+  @protected
+  AppConfig sse_decode_box_autoadd_app_config(SseDeserializer deserializer);
+
+  @protected
+  EngineStateUpdate sse_decode_engine_state_update(
+    SseDeserializer deserializer,
+  );
 
   @protected
   double sse_decode_f_32(SseDeserializer deserializer);
 
   @protected
-  List<String> sse_decode_list_String(SseDeserializer deserializer);
+  List<OutputDeviceInfo> sse_decode_list_output_device_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  Float32List sse_decode_list_prim_f_32_strict(SseDeserializer deserializer);
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
-
-  @protected
-  List<(String, String)> sse_decode_list_record_string_string(
-    SseDeserializer deserializer,
-  );
 
   @protected
   List<RoomConfig> sse_decode_list_room_config(SseDeserializer deserializer);
@@ -122,12 +153,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<TrackConfig> sse_decode_list_track_config(SseDeserializer deserializer);
 
   @protected
-  OscConfig sse_decode_osc_config(SseDeserializer deserializer);
+  String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
-  (String, String) sse_decode_record_string_string(
-    SseDeserializer deserializer,
-  );
+  OutputDeviceInfo sse_decode_output_device_info(SseDeserializer deserializer);
 
   @protected
   RoomConfig sse_decode_room_config(SseDeserializer deserializer);
@@ -139,13 +168,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int sse_decode_u_16(SseDeserializer deserializer);
 
   @protected
+  int sse_decode_u_32(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_u_8(SseDeserializer deserializer);
 
   @protected
   void sse_decode_unit(SseDeserializer deserializer);
-
-  @protected
-  BigInt sse_decode_usize(SseDeserializer deserializer);
 
   @protected
   int sse_decode_i_32(SseDeserializer deserializer);
@@ -157,14 +186,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_Map_String_String_None(
-    Map<String, String> self,
+  void sse_encode_StreamSink_String_Sse(
+    RustStreamSink<String> self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_StreamSink_String_Sse(
-    RustStreamSink<String> self,
+  void sse_encode_StreamSink_engine_state_update_Sse(
+    RustStreamSink<EngineStateUpdate> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_StreamSink_list_prim_f_32_strict_Sse(
+    RustStreamSink<Float32List> self,
     SseSerializer serializer,
   );
 
@@ -175,23 +210,41 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_app_config(AppConfig self, SseSerializer serializer);
 
   @protected
+  void sse_encode_atmos_error(AtmosError self, SseSerializer serializer);
+
+  @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_app_config(
+    AppConfig self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_engine_state_update(
+    EngineStateUpdate self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_f_32(double self, SseSerializer serializer);
 
   @protected
-  void sse_encode_list_String(List<String> self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_list_prim_u_8_strict(
-    Uint8List self,
+  void sse_encode_list_output_device_info(
+    List<OutputDeviceInfo> self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_list_record_string_string(
-    List<(String, String)> self,
+  void sse_encode_list_prim_f_32_strict(
+    Float32List self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_prim_u_8_strict(
+    Uint8List self,
     SseSerializer serializer,
   );
 
@@ -208,11 +261,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_osc_config(OscConfig self, SseSerializer serializer);
+  void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
-  void sse_encode_record_string_string(
-    (String, String) self,
+  void sse_encode_output_device_info(
+    OutputDeviceInfo self,
     SseSerializer serializer,
   );
 
@@ -226,13 +279,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_u_16(int self, SseSerializer serializer);
 
   @protected
+  void sse_encode_u_32(int self, SseSerializer serializer);
+
+  @protected
   void sse_encode_u_8(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_unit(void self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_usize(BigInt self, SseSerializer serializer);
 
   @protected
   void sse_encode_i_32(int self, SseSerializer serializer);

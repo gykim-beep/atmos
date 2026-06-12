@@ -5,25 +5,118 @@
 
 import '../common/config.dart';
 import '../frb_generated.dart';
+import 'error.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AUDIO_ENGINE`, `OSC_SERVER`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `deref`, `deref`, `initialize`, `initialize`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `fmt`, `fmt`
 
-Future<void> startAudioEngine() =>
-    RustLib.instance.api.crateApiSimpleStartAudioEngine();
+Future<AppConfig> apiGetConfig({required String path}) =>
+    RustLib.instance.api.crateApiSimpleApiGetConfig(path: path);
 
-Future<void> stopAudioEngine() =>
-    RustLib.instance.api.crateApiSimpleStopAudioEngine();
+Future<void> apiSaveConfig({required String path, required AppConfig config}) =>
+    RustLib.instance.api.crateApiSimpleApiSaveConfig(
+      path: path,
+      config: config,
+    );
 
-Future<AppConfig> loadAppConfig({required String path}) =>
-    RustLib.instance.api.crateApiSimpleLoadAppConfig(path: path);
+Future<void> apiPlayTrack({required String roomId, required String trackId}) =>
+    RustLib.instance.api.crateApiSimpleApiPlayTrack(
+      roomId: roomId,
+      trackId: trackId,
+    );
 
-Future<List<String>> getAvailableDevices() =>
-    RustLib.instance.api.crateApiSimpleGetAvailableDevices();
+Future<void> apiStopTrack({required String roomId, required String trackId}) =>
+    RustLib.instance.api.crateApiSimpleApiStopTrack(
+      roomId: roomId,
+      trackId: trackId,
+    );
 
-Stream<String> startOscServer({required int port}) =>
-    RustLib.instance.api.crateApiSimpleStartOscServer(port: port);
+Future<void> apiStopAll() => RustLib.instance.api.crateApiSimpleApiStopAll();
 
-Future<void> stopOscServer() =>
-    RustLib.instance.api.crateApiSimpleStopOscServer();
+Future<void> apiClearRoom({required String roomId}) =>
+    RustLib.instance.api.crateApiSimpleApiClearRoom(roomId: roomId);
+
+Future<void> apiSetMasterVolume({
+  required String roomId,
+  required double volume,
+}) => RustLib.instance.api.crateApiSimpleApiSetMasterVolume(
+  roomId: roomId,
+  volume: volume,
+);
+
+Future<void> apiSetTrackVolume({
+  required String roomId,
+  required String trackId,
+  required double volume,
+}) => RustLib.instance.api.crateApiSimpleApiSetTrackVolume(
+  roomId: roomId,
+  trackId: trackId,
+  volume: volume,
+);
+
+Stream<Float32List> apiCreateVuStream() =>
+    RustLib.instance.api.crateApiSimpleApiCreateVuStream();
+
+Future<void> apiStartAudioEngine({String? deviceName}) => RustLib.instance.api
+    .crateApiSimpleApiStartAudioEngine(deviceName: deviceName);
+
+Future<void> apiStartOscListener({
+  required int port,
+  required AppConfig config,
+}) => RustLib.instance.api.crateApiSimpleApiStartOscListener(
+  port: port,
+  config: config,
+);
+
+Stream<String> apiCreateLogStream() =>
+    RustLib.instance.api.crateApiSimpleApiCreateLogStream();
+
+Stream<EngineStateUpdate> apiCreateEngineStateStream() =>
+    RustLib.instance.api.crateApiSimpleApiCreateEngineStateStream();
+
+Future<void> apiPreloadAllSounds({required AppConfig config}) =>
+    RustLib.instance.api.crateApiSimpleApiPreloadAllSounds(config: config);
+
+Future<List<OutputDeviceInfo>> apiGetOutputDevices() =>
+    RustLib.instance.api.crateApiSimpleApiGetOutputDevices();
+
+Future<int> apiGetDeviceChannelCount({required String deviceName}) => RustLib
+    .instance
+    .api
+    .crateApiSimpleApiGetDeviceChannelCount(deviceName: deviceName);
+
+class EngineStateUpdate {
+  final String? activeRoomId;
+  final bool duckingActive;
+
+  const EngineStateUpdate({this.activeRoomId, required this.duckingActive});
+
+  @override
+  int get hashCode => activeRoomId.hashCode ^ duckingActive.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is EngineStateUpdate &&
+          runtimeType == other.runtimeType &&
+          activeRoomId == other.activeRoomId &&
+          duckingActive == other.duckingActive;
+}
+
+class OutputDeviceInfo {
+  final String name;
+  final int maxChannels;
+
+  const OutputDeviceInfo({required this.name, required this.maxChannels});
+
+  @override
+  int get hashCode => name.hashCode ^ maxChannels.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OutputDeviceInfo &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          maxChannels == other.maxChannels;
+}

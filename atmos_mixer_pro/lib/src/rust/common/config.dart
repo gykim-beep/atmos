@@ -7,59 +7,50 @@ import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 class AppConfig {
-  final Map<String, String> audioDevice;
-  final OscConfig osc;
+  final int oscPort;
+  final String? deviceName;
+  final int bufferSize;
   final List<RoomConfig> rooms;
 
   const AppConfig({
-    required this.audioDevice,
-    required this.osc,
+    required this.oscPort,
+    this.deviceName,
+    required this.bufferSize,
     required this.rooms,
   });
 
   @override
-  int get hashCode => audioDevice.hashCode ^ osc.hashCode ^ rooms.hashCode;
+  int get hashCode =>
+      oscPort.hashCode ^
+      deviceName.hashCode ^
+      bufferSize.hashCode ^
+      rooms.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is AppConfig &&
           runtimeType == other.runtimeType &&
-          audioDevice == other.audioDevice &&
-          osc == other.osc &&
+          oscPort == other.oscPort &&
+          deviceName == other.deviceName &&
+          bufferSize == other.bufferSize &&
           rooms == other.rooms;
 }
 
-class OscConfig {
-  final String host;
-  final int port;
-
-  const OscConfig({required this.host, required this.port});
-
-  @override
-  int get hashCode => host.hashCode ^ port.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is OscConfig &&
-          runtimeType == other.runtimeType &&
-          host == other.host &&
-          port == other.port;
-}
-
 class RoomConfig {
-  final BigInt id;
+  final String id;
   final String name;
-  final double masterVolume;
-  final String oscClear;
+  final String colorHex;
+  final double volume;
+  final String clearOscAddress;
   final List<TrackConfig> tracks;
 
   const RoomConfig({
     required this.id,
     required this.name,
-    required this.masterVolume,
-    required this.oscClear,
+    required this.colorHex,
+    required this.volume,
+    required this.clearOscAddress,
     required this.tracks,
   });
 
@@ -67,8 +58,9 @@ class RoomConfig {
   int get hashCode =>
       id.hashCode ^
       name.hashCode ^
-      masterVolume.hashCode ^
-      oscClear.hashCode ^
+      colorHex.hashCode ^
+      volume.hashCode ^
+      clearOscAddress.hashCode ^
       tracks.hashCode;
 
   @override
@@ -78,50 +70,55 @@ class RoomConfig {
           runtimeType == other.runtimeType &&
           id == other.id &&
           name == other.name &&
-          masterVolume == other.masterVolume &&
-          oscClear == other.oscClear &&
+          colorHex == other.colorHex &&
+          volume == other.volume &&
+          clearOscAddress == other.clearOscAddress &&
           tracks == other.tracks;
 }
 
 class TrackConfig {
-  final String file;
-  final BigInt outputCh;
+  final String id;
+  final String name;
+  final String filePath;
   final double volume;
-  final bool isBgm;
-  final bool loopPlay;
-  final String oscPlay;
-  final String oscStop;
+  final bool isLoop;
+  final int outputChannel;
+  final String playOscAddress;
+  final String stopOscAddress;
 
   const TrackConfig({
-    required this.file,
-    required this.outputCh,
+    required this.id,
+    required this.name,
+    required this.filePath,
     required this.volume,
-    required this.isBgm,
-    required this.loopPlay,
-    required this.oscPlay,
-    required this.oscStop,
+    required this.isLoop,
+    required this.outputChannel,
+    required this.playOscAddress,
+    required this.stopOscAddress,
   });
 
   @override
   int get hashCode =>
-      file.hashCode ^
-      outputCh.hashCode ^
+      id.hashCode ^
+      name.hashCode ^
+      filePath.hashCode ^
       volume.hashCode ^
-      isBgm.hashCode ^
-      loopPlay.hashCode ^
-      oscPlay.hashCode ^
-      oscStop.hashCode;
+      isLoop.hashCode ^
+      outputChannel.hashCode ^
+      playOscAddress.hashCode ^
+      stopOscAddress.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is TrackConfig &&
           runtimeType == other.runtimeType &&
-          file == other.file &&
-          outputCh == other.outputCh &&
+          id == other.id &&
+          name == other.name &&
+          filePath == other.filePath &&
           volume == other.volume &&
-          isBgm == other.isBgm &&
-          loopPlay == other.loopPlay &&
-          oscPlay == other.oscPlay &&
-          oscStop == other.oscStop;
+          isLoop == other.isLoop &&
+          outputChannel == other.outputChannel &&
+          playOscAddress == other.playOscAddress &&
+          stopOscAddress == other.stopOscAddress;
 }

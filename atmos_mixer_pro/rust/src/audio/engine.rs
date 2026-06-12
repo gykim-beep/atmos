@@ -1,113 +1,117 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use std::sync::Arc;
-use crossbeam_channel::unbounded;
-use std::sync::Arc;
-use crate::core::state::{EngineManager, SendStream};
+use cpal::{Stream, StreamConfig, OutputCallbackInfo, SampleFormat};
+use crossbeam_channel::Receiver;
 use crate::audio::mixer::AudioMixer;
-use crate::audio::player::SoundInstance;
+use crate::common::commands::AudioCommand;
 
 pub struct AudioEngine {
-    pub manager: Arc<EngineManager>,
-    instances: Vec<SoundInstance>,
-    sfx_active: usize,
+    stream: Option<Stream>,
+}
+
+impl Default for AudioEngine {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AudioEngine {
     pub fn new() -> Self {
         Self {
-            manager: Arc::new(EngineManager::new()),
-            instances: Vec::new(),
-            sfx_active: 0,
+            stream: None,
         }
     }
 
-    pub fn initialize(&mut self) -> Result<(), String> {
+    pub fn start(&mut self, device_name: Option<String>, cmd_receiver: Receiver<AudioCommand>) {
         let host = cpal::default_host();
-        let device = host.default_output_device().ok_or("No default output device")?;
-        
-        let config = device.default_output_config().map_err(|e| e.to_string())?.config();
-        let sample_rate = config.sample_rate.0;
-        
-        let (cmd_tx, cmd_rx) = unbounded::<crate::common::commands::AudioCommand>();
-        
-        let mut instances = Vec::new();
-        let mut sfx_active = 0;
-        let mut active_room_id = 1;
-        
-        let stream = device.build_output_stream(
-            &config,
-            move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-                // Process incoming commands
-                while let Ok(cmd) = cmd_rx.try_recv() {
-                    match cmd {
-                        crate::common::commands::AudioCommand::PlayInstance(mut inst) => {
-                            let fade_len = (sample_rate as f32 * 0.3) as usize; // 300ms fade in
-                            inst.play_fade_gain = 0.0;
-                            inst.play_fade_target = 1.0;
-                            inst.play_fade_start = 0.0;
-                            inst.play_fade_total = fade_len;
-                            inst.play_fade_left = fade_len;
-                            
-                            inst.duck_gain = 1.0;
-                            inst.duck_target = 1.0;
-                            inst.duck_start_gain = 1.0;
-                            
-                            if !inst.is_bgm {
-                                sfx_active += 1;
-                            }
-                            
-                            instances.push(inst);
-                        }
-                        crate::common::commands::AudioCommand::StopRoom { channels, fade_out_sec: _ } => {
-                            let fade_len = (sample_rate as f32 * 0.3) as usize; // 300ms fade out
-                            for inst in instances.iter_mut() {
-                                if channels.contains(&inst.output_ch) {
-                                    inst.play_fade_target = 0.0;
-                                    inst.play_fade_start = inst.play_fade_gain;
-                                    inst.play_fade_total = fade_len;
-                                    inst.play_fade_left = fade_len;
-                                }
-                            }
-                        }
-                        crate::common::commands::AudioCommand::SetChannelVolume { channel, volume } => {
-                            for inst in instances.iter_mut() {
-                                if inst.output_ch == channel {
-                                    inst.volume = volume;
-                                }
-                            }
-                        }
-                        crate::common::commands::AudioCommand::SetRoomVolume { room_id: _, volume } => {
-                            // Needs mapping from room_id to instances, or we keep a mapping of channel to room_id
-                            // Simplified for now: assume room volume can be set directly on instance or we don't use it yet
-                        }
-                        crate::common::commands::AudioCommand::SetMasterVolume { volume: _ } => {}
-                    }
-                }
-                
-                AudioMixer::process_buffer(
-                    data, 
-                    config.channels as usize, 
-                    &mut instances,
-                    &mut sfx_active,
-                    active_room_id,
-                    sample_rate
-                );
+        let device = if let Some(name) = device_name {
+            host.output_devices().unwrap().find(|d| d.name().unwrap_or_default() == name).unwrap_or(host.default_output_device().unwrap())
+        } else {
+            host.default_output_device().unwrap()
+        };
+
+        println!("Using output device: {}", device.name().unwrap_or_default());
+
+        let mut supported_configs_range = device.supported_output_configs().unwrap();
+        let supported_config = supported_configs_range.next().unwrap().with_max_sample_rate();
+        let sample_format = supported_config.sample_format();
+        let config: StreamConfig = supported_config.into();
+
+        println!("Stream config: {:?}", config);
+
+        let (gc_tx, gc_rx) = crossbeam_channel::bounded(256);
+        std::thread::spawn(move || {
+            while let Ok(_dropped) = gc_rx.recv() {
+                // Instance is dropped here in a background thread, preventing GC in audio thread.
+            }
+        });
+
+        let mut mixer = AudioMixer::new(config.sample_rate.0, gc_tx);
+
+        let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
+
+        let stream = match sample_format {
+            SampleFormat::F32 => {
+                device.build_output_stream(
+                    &config,
+                    move |data: &mut [f32], _: &OutputCallbackInfo| {
+                        Self::process_commands(&mut mixer, &cmd_receiver);
+                        mixer.process(data, config.channels as usize);
+                    },
+                    err_fn,
+                    None
+                )
             },
-            |err| eprintln!("Stream error: {}", err),
-            None
-        ).map_err(|e| e.to_string())?;
-        
-        stream.play().map_err(|e| e.to_string())?;
-        
-        let mut state = self.manager.state.lock().unwrap();
-        state.stream = Some(SendStream(stream));
-        state.cmd_tx = Some(cmd_tx);
-        
-        Ok(())
+            _ => panic!("Unsupported format"),
+        }.unwrap();
+
+        stream.play().unwrap();
+        self.stream = Some(stream);
     }
 
-    pub fn stop(&self) {
-        let mut state = self.manager.state.lock().unwrap();
-        state.stream = None; 
+    fn process_commands(mixer: &mut AudioMixer, rx: &Receiver<AudioCommand>) {
+        // Lock-free pop from command queue
+        while let Ok(cmd) = rx.try_recv() {
+            match cmd {
+                AudioCommand::PlayTrack { room_id, track_id, data, stream_receiver, stream_sample_rate, is_loop, volume: _, output_channel, output_stereo } => {
+                    let instance = crate::audio::player::SoundInstance::new(
+                        track_id,
+                        room_id,
+                        data,
+                        stream_receiver,
+                        stream_sample_rate,
+                        is_loop,
+                        output_channel,
+                        output_stereo,
+                    );
+                    if let Some(slot) = mixer.instances.iter_mut().find(|s| s.is_none()) {
+                        if let Some(old) = slot.replace(instance) {
+                            let _ = mixer.gc_sender.try_send(old);
+                        }
+                    } else {
+                        eprintln!("Mixer object pool full!");
+                    }
+                }
+                AudioCommand::StopTrack { room_id, track_id } => {
+                    for inst in mixer.instances.iter_mut().flatten() {
+                        if inst.room_id == room_id && inst.id == track_id {
+                            inst.is_stopping = true;
+                        }
+                    }
+                }
+                AudioCommand::StopAll => {
+                    for inst in mixer.instances.iter_mut().flatten() {
+                        inst.is_stopping = true;
+                    }
+                }
+                AudioCommand::ClearRoom { room_id } => {
+                    for inst in mixer.instances.iter_mut().flatten() {
+                        if inst.room_id == room_id {
+                            inst.is_stopping = true;
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
     }
 }

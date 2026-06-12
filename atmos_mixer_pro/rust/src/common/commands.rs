@@ -1,20 +1,22 @@
-use crate::audio::player::SoundInstance;
+use std::sync::Arc;
+use crate::audio::player::SoundData;
 
+#[derive(Clone)]
 pub enum AudioCommand {
-    PlayInstance(SoundInstance),
-    StopRoom {
-        channels: Vec<usize>,
-        fade_out_sec: f32,
-    },
-    SetChannelVolume {
-        channel: usize,
+    PlayTrack {
+        room_id: u32,
+        track_id: u32,
+        data: Option<Arc<SoundData>>,
+        stream_receiver: Option<crossbeam_channel::Receiver<Vec<f32>>>,
+        stream_sample_rate: u32,
+        is_loop: bool,
         volume: f32,
+        output_channel: usize,
+        output_stereo: bool,
     },
-    SetRoomVolume {
-        room_id: usize,
-        volume: f32,
-    },
-    SetMasterVolume {
-        volume: f32,
-    },
+    StopTrack { room_id: u32, track_id: u32 },
+    StopAll,
+    SetMasterVolume { room_id: u32, volume: f32 },
+    SetTrackVolume { room_id: u32, track_id: u32, volume: f32 },
+    ClearRoom { room_id: u32 },
 }

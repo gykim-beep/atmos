@@ -1,23 +1,44 @@
 import 'package:flutter/material.dart';
-import 'src/rust/frb_generated.dart';
-import 'package:provider/provider.dart';
-import 'core/state/global_state.dart';
-import 'features/dashboard/screens/dashboard_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:window_manager/window_manager.dart';
+import 'package:atmos_mixer_pro/src/rust/frb_generated.dart';
+import 'package:atmos_mixer_pro/src/rust/api/simple.dart' as rust_api;
+import 'package:atmos_mixer_pro/features/dashboard/screens/dashboard_screen.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize rust bridge
   await RustLib.init();
+  
+  // Start the background rust threads
+  rust_api.apiStartAudioEngine(deviceName: null);
+  
+  // Initialize window_manager for frameless kiosk mode
+  await windowManager.ensureInitialized();
+
+  WindowOptions windowOptions = const WindowOptions(
+    size: Size(1280, 800),
+    center: true,
+    backgroundColor: Colors.transparent,
+    skipTaskbar: false,
+    titleBarStyle: TitleBarStyle.hidden, // Frameless window
+  );
+  
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
+
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => GlobalState()),
-      ],
-      child: const AtmosApp(),
+    const ProviderScope(
+      child: AtmosMixerProApp(),
     ),
   );
 }
 
-class AtmosApp extends StatelessWidget {
-  const AtmosApp({super.key});
+class AtmosMixerProApp extends StatelessWidget {
+  const AtmosMixerProApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -25,11 +46,8 @@ class AtmosApp extends StatelessWidget {
       title: 'Atmos Mixer Pro',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        fontFamily: 'Inter',
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF00FFCC),
-          brightness: Brightness.dark,
-        ),
+        brightness: Brightness.dark,
+        fontFamily: 'Pretendard', // Fallback to system font if not provided
       ),
       home: const DashboardScreen(),
     );
