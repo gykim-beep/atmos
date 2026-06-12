@@ -3,7 +3,7 @@ use std::thread;
 use std::sync::Arc;
 use rosc::OscPacket;
 use crate::osc::debouncer::OscDebouncer;
-use crate::common::config::AppConfig;
+
 use crate::common::utils::hash_id;
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -30,7 +30,7 @@ impl OscListener {
         }
     }
 
-    pub fn start(&self, port: u16, config: Arc<AppConfig>) {
+    pub fn start(&self, port: u16) {
         OSC_RUNNING_FLAG.store(false, Ordering::Relaxed);
         std::thread::sleep(std::time::Duration::from_millis(600)); // wait for old to die
         OSC_RUNNING_FLAG.store(true, Ordering::Relaxed);
@@ -58,7 +58,7 @@ impl OscListener {
                 match socket.recv_from(&mut buf) {
                     Ok((size, _addr)) => {
                         if let Ok((_, packet)) = rosc::decoder::decode_udp(&buf[..size]) {
-                            handle_packet(packet, &debouncer, &config);
+                            handle_packet(packet, &debouncer);
                         }
                     }
                     Err(_e) => {
@@ -71,7 +71,12 @@ impl OscListener {
     }
 }
 
-fn handle_packet(packet: OscPacket, debouncer: &OscDebouncer, config: &AppConfig) {
+fn handle_packet(packet: OscPacket, debouncer: &OscDebouncer) {
+    let config_guard = crate::core::state::GLOBAL_STATE.config.read().unwrap();
+    let config = match config_guard.as_ref() {
+        Some(c) => c,
+        None => return,
+    };
     match packet {
         OscPacket::Message(msg) => {
             // Drop if arg <= 0.0 or debounce fails
@@ -138,7 +143,7 @@ fn handle_packet(packet: OscPacket, debouncer: &OscDebouncer, config: &AppConfig
                                                 is_loop: next_t.is_loop,
                                                 volume: next_t.volume,
                                                 output_channel: next_t.output_channel as usize,
-                                                output_stereo: true,
+                                                output_stereo: next_t.output_stereo,
                                             });
                                         }
                                     }
@@ -175,7 +180,7 @@ fn handle_packet(packet: OscPacket, debouncer: &OscDebouncer, config: &AppConfig
                                 is_loop: track.is_loop,
                                 volume: track.volume,
                                 output_channel: track.output_channel as usize,
-                                output_stereo: true,
+                                output_stereo: track.output_stereo,
                             });
                         } else {
                             crate::core::state::GLOBAL_STATE.log(format!("Cache miss for track file: {}", track.file_path));
@@ -208,7 +213,7 @@ fn handle_packet(packet: OscPacket, debouncer: &OscDebouncer, config: &AppConfig
         }
         OscPacket::Bundle(bundle) => {
             for packet in bundle.content {
-                handle_packet(packet, debouncer, config);
+                handle_packet(packet, debouncer);
             }
         }
     }

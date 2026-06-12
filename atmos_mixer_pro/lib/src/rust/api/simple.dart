@@ -60,13 +60,8 @@ Stream<Float32List> apiCreateVuStream() =>
 Future<void> apiStartAudioEngine({String? deviceName}) => RustLib.instance.api
     .crateApiSimpleApiStartAudioEngine(deviceName: deviceName);
 
-Future<void> apiStartOscListener({
-  required int port,
-  required AppConfig config,
-}) => RustLib.instance.api.crateApiSimpleApiStartOscListener(
-  port: port,
-  config: config,
-);
+Future<void> apiStartOscListener({required int port}) =>
+    RustLib.instance.api.crateApiSimpleApiStartOscListener(port: port);
 
 Stream<String> apiCreateLogStream() =>
     RustLib.instance.api.crateApiSimpleApiCreateLogStream();

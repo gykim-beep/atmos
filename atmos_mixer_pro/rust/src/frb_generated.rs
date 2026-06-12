@@ -560,12 +560,11 @@ fn wire__crate__api__simple__api_start_osc_listener_impl(
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_port = <u16>::sse_decode(&mut deserializer);
-            let api_config = <crate::common::config::AppConfig>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, ()>((move || {
                     let output_ok = Result::<_, ()>::Ok({
-                        crate::api::simple::api_start_osc_listener(api_port, api_config);
+                        crate::api::simple::api_start_osc_listener(api_port);
                     })?;
                     Ok(output_ok)
                 })())
@@ -857,6 +856,7 @@ impl SseDecode for crate::common::config::TrackConfig {
         let mut var_volume = <f32>::sse_decode(deserializer);
         let mut var_isLoop = <bool>::sse_decode(deserializer);
         let mut var_outputChannel = <u32>::sse_decode(deserializer);
+        let mut var_outputStereo = <bool>::sse_decode(deserializer);
         let mut var_playOscAddress = <String>::sse_decode(deserializer);
         let mut var_stopOscAddress = <String>::sse_decode(deserializer);
         return crate::common::config::TrackConfig {
@@ -866,6 +866,7 @@ impl SseDecode for crate::common::config::TrackConfig {
             volume: var_volume,
             is_loop: var_isLoop,
             output_channel: var_outputChannel,
+            output_stereo: var_outputStereo,
             play_osc_address: var_playOscAddress,
             stop_osc_address: var_stopOscAddress,
         };
@@ -1087,6 +1088,7 @@ impl flutter_rust_bridge::IntoDart for crate::common::config::TrackConfig {
             self.volume.into_into_dart().into_dart(),
             self.is_loop.into_into_dart().into_dart(),
             self.output_channel.into_into_dart().into_dart(),
+            self.output_stereo.into_into_dart().into_dart(),
             self.play_osc_address.into_into_dart().into_dart(),
             self.stop_osc_address.into_into_dart().into_dart(),
         ]
@@ -1273,6 +1275,7 @@ impl SseEncode for crate::common::config::TrackConfig {
         <f32>::sse_encode(self.volume, serializer);
         <bool>::sse_encode(self.is_loop, serializer);
         <u32>::sse_encode(self.output_channel, serializer);
+        <bool>::sse_encode(self.output_stereo, serializer);
         <String>::sse_encode(self.play_osc_address, serializer);
         <String>::sse_encode(self.stop_osc_address, serializer);
     }

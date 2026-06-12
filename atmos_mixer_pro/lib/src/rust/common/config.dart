@@ -83,6 +83,7 @@ class TrackConfig {
   final double volume;
   final bool isLoop;
   final int outputChannel;
+  final bool outputStereo;
   final String playOscAddress;
   final String stopOscAddress;
 
@@ -93,6 +94,7 @@ class TrackConfig {
     required this.volume,
     required this.isLoop,
     required this.outputChannel,
+    required this.outputStereo,
     required this.playOscAddress,
     required this.stopOscAddress,
   });
@@ -105,6 +107,7 @@ class TrackConfig {
       volume.hashCode ^
       isLoop.hashCode ^
       outputChannel.hashCode ^
+      outputStereo.hashCode ^
       playOscAddress.hashCode ^
       stopOscAddress.hashCode;
 
@@ -119,6 +122,7 @@ class TrackConfig {
           volume == other.volume &&
           isLoop == other.isLoop &&
           outputChannel == other.outputChannel &&
+          outputStereo == other.outputStereo &&
           playOscAddress == other.playOscAddress &&
           stopOscAddress == other.stopOscAddress;
 }

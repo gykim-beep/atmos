@@ -102,7 +102,7 @@ class _HoverGlowButtonState extends State<HoverGlowButton> {
   }
 }
 
-class RoomCard extends ConsumerWidget {
+class RoomCard extends ConsumerStatefulWidget {
   final RoomConfig room;
   final bool isActive;
   final bool isCleared;
@@ -117,7 +117,38 @@ class RoomCard extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RoomCard> createState() => _RoomCardState();
+}
+
+class _RoomCardState extends ConsumerState<RoomCard> {
+  late TextEditingController _nameController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.room.name);
+  }
+
+  @override
+  void didUpdateWidget(RoomCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.room.name != widget.room.name && _nameController.text != widget.room.name) {
+      _nameController.text = widget.room.name;
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final room = widget.room;
+    final isActive = widget.isActive;
+    final isCleared = widget.isCleared;
+    final accentColor = widget.accentColor;
     final AppConfig? config = ref.read(configProvider);
     return Container(
       width: 350,
@@ -147,28 +178,35 @@ class RoomCard extends ConsumerWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      child: TextField(
-                        controller: TextEditingController(text: room.name),
-                        style: TextStyle(
-                          color: accentColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                        decoration: const InputDecoration(
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                          border: InputBorder.none,
-                        ),
-                        onSubmitted: (v) {
-                          if (config != null) {
-                            final newRooms = List<RoomConfig>.from(config.rooms);
-                            final idx = newRooms.indexWhere((r) => r.id == room.id);
-                            if (idx != -1) {
-                              newRooms[idx] = RoomConfig(id: room.id, name: v, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: room.tracks);
-                              ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: config.oscPort, deviceName: config.deviceName, bufferSize: config.bufferSize, rooms: newRooms));
-                            }
-                          }
-                        },
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _nameController,
+                              style: TextStyle(
+                                color: accentColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              decoration: const InputDecoration(
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                                border: InputBorder.none,
+                              ),
+                              onSubmitted: (v) {
+                                if (config != null) {
+                                  final newRooms = List<RoomConfig>.from(config.rooms);
+                                  final idx = newRooms.indexWhere((r) => r.id == room.id);
+                                  if (idx != -1) {
+                                    newRooms[idx] = RoomConfig(id: room.id, name: v, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: room.tracks);
+                                    ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: config.oscPort, deviceName: config.deviceName, bufferSize: config.bufferSize, rooms: newRooms));
+                                  }
+                                }
+                              },
+                            ),
+                          ),
+                          Icon(Icons.edit, size: 14, color: accentColor.withValues(alpha: 0.5)),
+                        ],
                       ),
                     ),
                     SizedBox(
@@ -229,7 +267,7 @@ class RoomCard extends ConsumerWidget {
                     Expanded(
                       child: HoverGlowButton(
                         icon: const Icon(Icons.add, size: 16, color: Colors.white),
-                        label: const Text('오디오 파일 추가', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        label: const Text('오디오 파일 추가', style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold)),
                         baseColor: AppColors.darkGrey,
                         glowColor: Colors.white,
                         onPressed: () async {

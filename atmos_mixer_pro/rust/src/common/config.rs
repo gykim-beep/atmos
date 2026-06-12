@@ -31,6 +31,8 @@ pub struct RoomConfig {
     pub tracks: Vec<TrackConfig>,
 }
 
+fn default_true() -> bool { true }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrackConfig {
     pub id: String,
@@ -39,6 +41,8 @@ pub struct TrackConfig {
     pub volume: f32, // 0.0 to 1.0
     pub is_loop: bool, // true = BGM, false = SFX
     pub output_channel: u32, // 1 to 24 (1-indexed for user, mapped to 0-23 internally)
+    #[serde(default = "default_true")]
+    pub output_stereo: bool,
     pub play_osc_address: String,
     pub stop_osc_address: String,
 }

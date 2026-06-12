@@ -129,9 +129,9 @@ pub fn api_start_audio_engine(device_name: Option<String>) {
     });
 }
 
-pub fn api_start_osc_listener(port: u16, config: AppConfig) {
+pub fn api_start_osc_listener(port: u16) {
     let listener = crate::osc::listener::OscListener::new();
-    listener.start(port, std::sync::Arc::new(config));
+    listener.start(port);
 }
 
 pub fn api_create_log_stream(sink: StreamSink<String>) {
@@ -186,7 +186,23 @@ pub fn api_preload_all_sounds(config: AppConfig) -> Result<(), AtmosError> {
         }
     }
     let mut global_config = GLOBAL_STATE.config.write().unwrap();
-    *global_config = Some(config);
+    *global_config = Some(config.clone());
+    drop(global_config);
+    
+    // Check if active_room_id exists in the new config
+    let active_room_id = {
+        let guard = GLOBAL_STATE.active_room_id.read().unwrap();
+        guard.clone()
+    };
+    
+    if let Some(active_id) = active_room_id {
+        let room_exists = config.rooms.iter().any(|r| r.id == active_id);
+        if !room_exists {
+            // Room was deleted! Safely clear the room
+            let _ = api_clear_room(active_id);
+        }
+    }
+    
     Ok(())
 }
 

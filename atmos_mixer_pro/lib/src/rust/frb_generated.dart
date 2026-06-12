@@ -123,10 +123,7 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiSimpleApiStartAudioEngine({String? deviceName});
 
-  Future<void> crateApiSimpleApiStartOscListener({
-    required int port,
-    required AppConfig config,
-  });
+  Future<void> crateApiSimpleApiStartOscListener({required int port});
 
   Future<void> crateApiSimpleApiStopAll();
 
@@ -596,16 +593,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<void> crateApiSimpleApiStartOscListener({
-    required int port,
-    required AppConfig config,
-  }) {
+  Future<void> crateApiSimpleApiStartOscListener({required int port}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_u_16(port, serializer);
-          sse_encode_box_autoadd_app_config(config, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -618,7 +611,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: null,
         ),
         constMeta: kCrateApiSimpleApiStartOscListenerConstMeta,
-        argValues: [port, config],
+        argValues: [port],
         apiImpl: this,
       ),
     );
@@ -627,7 +620,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiSimpleApiStartOscListenerConstMeta =>
       const TaskConstMeta(
         debugName: "api_start_osc_listener",
-        argNames: ["port", "config"],
+        argNames: ["port"],
       );
 
   @override
@@ -845,8 +838,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TrackConfig dco_decode_track_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 8)
-      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
     return TrackConfig(
       id: dco_decode_String(arr[0]),
       name: dco_decode_String(arr[1]),
@@ -854,8 +847,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       volume: dco_decode_f_32(arr[3]),
       isLoop: dco_decode_bool(arr[4]),
       outputChannel: dco_decode_u_32(arr[5]),
-      playOscAddress: dco_decode_String(arr[6]),
-      stopOscAddress: dco_decode_String(arr[7]),
+      outputStereo: dco_decode_bool(arr[6]),
+      playOscAddress: dco_decode_String(arr[7]),
+      stopOscAddress: dco_decode_String(arr[8]),
     );
   }
 
@@ -1072,6 +1066,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_volume = sse_decode_f_32(deserializer);
     var var_isLoop = sse_decode_bool(deserializer);
     var var_outputChannel = sse_decode_u_32(deserializer);
+    var var_outputStereo = sse_decode_bool(deserializer);
     var var_playOscAddress = sse_decode_String(deserializer);
     var var_stopOscAddress = sse_decode_String(deserializer);
     return TrackConfig(
@@ -1081,6 +1076,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       volume: var_volume,
       isLoop: var_isLoop,
       outputChannel: var_outputChannel,
+      outputStereo: var_outputStereo,
       playOscAddress: var_playOscAddress,
       stopOscAddress: var_stopOscAddress,
     );
@@ -1323,6 +1319,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_f_32(self.volume, serializer);
     sse_encode_bool(self.isLoop, serializer);
     sse_encode_u_32(self.outputChannel, serializer);
+    sse_encode_bool(self.outputStereo, serializer);
     sse_encode_String(self.playOscAddress, serializer);
     sse_encode_String(self.stopOscAddress, serializer);
   }
