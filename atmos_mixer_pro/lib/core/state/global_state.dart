@@ -17,7 +17,7 @@ class ConfigNotifier extends Notifier<AppConfig?> {
   void saveConfig(AppConfig newConfig) async {
     await rust_api.apiSaveConfig(path: "config.json", config: newConfig);
     state = newConfig;
-    await rust_api.apiStartOscListener(port: newConfig.oscPort, config: newConfig);
+    await rust_api.apiStartOscListener(port: newConfig.oscPort);
   }
 }
 

@@ -282,6 +282,7 @@ class _RoomCardState extends ConsumerState<RoomCard> {
                               volume: 1.0,
                               isLoop: false,
                               outputChannel: 1,
+                              outputStereo: true,
                               playOscAddress: '/play',
                               stopOscAddress: '/stop',
                             );
@@ -388,7 +389,7 @@ class _RoomCardState extends ConsumerState<RoomCard> {
                             final newTracks = List<TrackConfig>.from(newRooms[idx].tracks);
                             final tIdx = newTracks.indexWhere((t) => t.id == track.id);
                             if (tIdx != -1) {
-                              newTracks[tIdx] = TrackConfig(id: track.id, name: track.name, filePath: track.filePath, volume: v, isLoop: track.isLoop, outputChannel: track.outputChannel, playOscAddress: track.playOscAddress, stopOscAddress: track.stopOscAddress);
+                              newTracks[tIdx] = TrackConfig(id: track.id, name: track.name, filePath: track.filePath, volume: v, isLoop: track.isLoop, outputChannel: track.outputChannel, outputStereo: track.outputStereo, playOscAddress: track.playOscAddress, stopOscAddress: track.stopOscAddress);
                               newRooms[idx] = RoomConfig(id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks);
                               ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: config.oscPort, deviceName: config.deviceName, bufferSize: config.bufferSize, rooms: newRooms));
                             }
@@ -404,7 +405,7 @@ class _RoomCardState extends ConsumerState<RoomCard> {
                             final newTracks = List<TrackConfig>.from(newRooms[idx].tracks);
                             final tIdx = newTracks.indexWhere((t) => t.id == track.id);
                             if (tIdx != -1) {
-                              newTracks[tIdx] = TrackConfig(id: track.id, name: track.name, filePath: track.filePath, volume: track.volume, isLoop: v, outputChannel: track.outputChannel, playOscAddress: track.playOscAddress, stopOscAddress: track.stopOscAddress);
+                              newTracks[tIdx] = TrackConfig(id: track.id, name: track.name, filePath: track.filePath, volume: track.volume, isLoop: v, outputChannel: track.outputChannel, outputStereo: track.outputStereo, playOscAddress: track.playOscAddress, stopOscAddress: track.stopOscAddress);
                               newRooms[idx] = RoomConfig(id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks);
                               ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: config.oscPort, deviceName: config.deviceName, bufferSize: config.bufferSize, rooms: newRooms));
                             }
@@ -419,7 +420,7 @@ class _RoomCardState extends ConsumerState<RoomCard> {
                             final newTracks = List<TrackConfig>.from(newRooms[idx].tracks);
                             final tIdx = newTracks.indexWhere((t) => t.id == track.id);
                             if (tIdx != -1) {
-                              newTracks[tIdx] = TrackConfig(id: track.id, name: v, filePath: track.filePath, volume: track.volume, isLoop: track.isLoop, outputChannel: track.outputChannel, playOscAddress: track.playOscAddress, stopOscAddress: track.stopOscAddress);
+                              newTracks[tIdx] = TrackConfig(id: track.id, name: v, filePath: track.filePath, volume: track.volume, isLoop: track.isLoop, outputChannel: track.outputChannel, outputStereo: track.outputStereo, playOscAddress: track.playOscAddress, stopOscAddress: track.stopOscAddress);
                               newRooms[idx] = RoomConfig(id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks);
                               ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: config.oscPort, deviceName: config.deviceName, bufferSize: config.bufferSize, rooms: newRooms));
                             }

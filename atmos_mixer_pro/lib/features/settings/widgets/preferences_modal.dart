@@ -77,6 +77,7 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
           volume: t.volume,
           isLoop: t.isLoop,
           outputChannel: t.outputChannel,
+          outputStereo: t.outputStereo,
           playOscAddress: t.playOscAddress,
           stopOscAddress: t.stopOscAddress,
         )).toList(),
@@ -271,8 +272,15 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
                                     final newRooms = List<RoomConfig>.from(_tempConfig.rooms);
                                     final newTracks = List<TrackConfig>.from(newRooms[rIndex].tracks);
                                     newTracks[tIndex] = TrackConfig(
-                                      id: track.id, name: track.name, filePath: track.filePath, volume: track.volume, isLoop: track.isLoop,
-                                      outputChannel: num, playOscAddress: track.playOscAddress, stopOscAddress: track.stopOscAddress,
+                                      id: track.id,
+                                      name: track.name,
+                                      filePath: track.filePath,
+                                      volume: track.volume,
+                                      isLoop: track.isLoop,
+                                      outputChannel: num,
+                                      outputStereo: track.outputStereo,
+                                      playOscAddress: track.playOscAddress,
+                                      stopOscAddress: track.stopOscAddress,
                                     );
                                     newRooms[rIndex] = RoomConfig(
                                       id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks,
@@ -390,8 +398,15 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
                                     final newRooms = List<RoomConfig>.from(_tempConfig.rooms);
                                     final newTracks = List<TrackConfig>.from(newRooms[rIndex].tracks);
                                     newTracks[tIndex] = TrackConfig(
-                                      id: track.id, name: track.name, filePath: track.filePath, volume: track.volume, isLoop: track.isLoop,
-                                      outputChannel: track.outputChannel, playOscAddress: val, stopOscAddress: track.stopOscAddress,
+                                      id: track.id,
+                                      name: track.name,
+                                      filePath: track.filePath,
+                                      volume: track.volume,
+                                      isLoop: track.isLoop,
+                                      outputChannel: track.outputChannel,
+                                      outputStereo: track.outputStereo,
+                                      playOscAddress: val,
+                                      stopOscAddress: track.stopOscAddress,
                                     );
                                     newRooms[rIndex] = RoomConfig(
                                       id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks,
@@ -413,7 +428,7 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
                                     final newTracks = List<TrackConfig>.from(newRooms[rIndex].tracks);
                                     newTracks[tIndex] = TrackConfig(
                                       id: track.id, name: track.name, filePath: track.filePath, volume: track.volume, isLoop: track.isLoop,
-                                      outputChannel: track.outputChannel, playOscAddress: track.playOscAddress, stopOscAddress: val,
+                                      outputChannel: track.outputChannel, outputStereo: track.outputStereo, playOscAddress: track.playOscAddress, stopOscAddress: val,
                                     );
                                     newRooms[rIndex] = RoomConfig(
                                       id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks,
