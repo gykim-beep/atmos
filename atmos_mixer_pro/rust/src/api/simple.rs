@@ -28,9 +28,11 @@ pub fn api_play_track(room_id: String, track_id: String) -> Result<(), AtmosErro
                     // Start DiskStreamer for BGM
                     match crate::audio::streaming::DiskStreamer::new(track.file_path.clone()) {
                         Ok(streamer) => {
+                            GLOBAL_STATE.add_playing_track(track_id.clone());
                             GLOBAL_STATE.command_sender.try_send(AudioCommand::PlayTrack {
                                 room_id: hash_id(&room_id),
                                 track_id: hash_id(&track_id),
+                                track_id_str: track_id.clone(),
                                 data: None,
                                 stream_receiver: Some(streamer.chunk_receiver),
                                 stream_sample_rate: streamer.sample_rate,
@@ -48,9 +50,11 @@ pub fn api_play_track(room_id: String, track_id: String) -> Result<(), AtmosErro
                 } else {
                     let cache_guard = GLOBAL_STATE.sound_cache.read().unwrap();
                     if let Some(data) = cache_guard.get(&track.file_path) {
+                        GLOBAL_STATE.add_playing_track(track_id.clone());
                         GLOBAL_STATE.command_sender.try_send(AudioCommand::PlayTrack {
                             room_id: hash_id(&room_id),
                             track_id: hash_id(&track_id),
+                            track_id_str: track_id.clone(),
                             data: Some(data.clone()),
                             stream_receiver: None,
                             stream_sample_rate: data.sample_rate,
@@ -71,6 +75,7 @@ pub fn api_play_track(room_id: String, track_id: String) -> Result<(), AtmosErro
 }
 
 pub fn api_stop_track(room_id: String, track_id: String) -> Result<(), AtmosError> {
+    GLOBAL_STATE.remove_playing_track(&track_id);
     GLOBAL_STATE.command_sender.try_send(AudioCommand::StopTrack { 
         room_id: hash_id(&room_id), 
         track_id: hash_id(&track_id) 
@@ -79,6 +84,7 @@ pub fn api_stop_track(room_id: String, track_id: String) -> Result<(), AtmosErro
 }
 
 pub fn api_stop_all() -> Result<(), AtmosError> {
+    GLOBAL_STATE.clear_playing_tracks();
     GLOBAL_STATE.set_active_room(None);
     GLOBAL_STATE.command_sender.try_send(AudioCommand::StopAll)
         .map_err(|e| AtmosError { message: e.to_string() })?;
@@ -86,6 +92,8 @@ pub fn api_stop_all() -> Result<(), AtmosError> {
 }
 
 pub fn api_clear_room(room_id: String) -> Result<(), AtmosError> {
+    // When a room is cleared, we might want to just clear playing tracks, but usually it stops them too.
+    GLOBAL_STATE.clear_playing_tracks();
     {
         let mut guard = GLOBAL_STATE.active_room_id.write().unwrap();
         if guard.as_ref() == Some(&room_id) {
@@ -148,6 +156,7 @@ pub fn api_create_log_stream(sink: StreamSink<String>) {
 pub struct EngineStateUpdate {
     pub active_room_id: Option<String>,
     pub ducking_active: bool,
+    pub playing_track_ids: Vec<String>,
 }
 
 pub fn api_create_engine_state_stream(sink: StreamSink<EngineStateUpdate>) {
@@ -156,6 +165,7 @@ pub fn api_create_engine_state_stream(sink: StreamSink<EngineStateUpdate>) {
         let _ = sink.add(EngineStateUpdate {
             active_room_id: GLOBAL_STATE.active_room_id.read().unwrap().clone(),
             ducking_active: GLOBAL_STATE.is_ducking.load(std::sync::atomic::Ordering::Relaxed),
+            playing_track_ids: GLOBAL_STATE.playing_track_ids.read().unwrap().clone(),
         });
         while let Ok(state) = rx.recv() {
             let _ = sink.add(state);
@@ -210,6 +220,7 @@ pub fn api_preload_all_sounds(config: AppConfig) -> Result<(), AtmosError> {
 pub struct OutputDeviceInfo {
     pub name: String,
     pub max_channels: u32,
+    pub channel_names: Vec<String>,
 }
 
 pub fn api_get_output_devices() -> Result<Vec<OutputDeviceInfo>, AtmosError> {
@@ -229,7 +240,15 @@ pub fn api_get_output_devices() -> Result<Vec<OutputDeviceInfo>, AtmosError> {
                     }
                 }
             }
-            device_info_list.push(OutputDeviceInfo { name, max_channels });
+            
+            #[cfg(target_os = "macos")]
+            let channel_names = crate::audio::channel_names::get_channel_names_mac(&name, max_channels);
+            #[cfg(target_os = "windows")]
+            let channel_names = crate::audio::channel_names::get_channel_names_win(&name, max_channels);
+            #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+            let channel_names = crate::audio::channel_names::get_channel_names_fallback(max_channels);
+
+            device_info_list.push(OutputDeviceInfo { name, max_channels, channel_names });
         }
     }
     Ok(device_info_list)
@@ -257,4 +276,17 @@ pub fn api_get_device_channel_count(device_name: String) -> Result<u32, AtmosErr
         }
     }
     Err(AtmosError { message: format!("Device not found: {}", device_name) })
+}
+
+pub fn api_get_device_channel_names(device_name: String) -> Result<Vec<String>, AtmosError> {
+    let max_channels = api_get_device_channel_count(device_name.clone())?;
+    
+    #[cfg(target_os = "macos")]
+    let channel_names = crate::audio::channel_names::get_channel_names_mac(&device_name, max_channels);
+    #[cfg(target_os = "windows")]
+    let channel_names = crate::audio::channel_names::get_channel_names_win(&device_name, max_channels);
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    let channel_names = crate::audio::channel_names::get_channel_names_fallback(max_channels);
+    
+    Ok(channel_names)
 }

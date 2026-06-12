@@ -6,6 +6,7 @@ pub enum AudioCommand {
     PlayTrack {
         room_id: u32,
         track_id: u32,
+        track_id_str: String,
         data: Option<Arc<SoundData>>,
         stream_receiver: Option<crossbeam_channel::Receiver<Vec<f32>>>,
         stream_sample_rate: u32,

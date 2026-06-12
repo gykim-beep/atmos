@@ -1,0 +1,18 @@
+{
+  "" : {
+    "diagnostics" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/FlutterFramework/build/FlutterFramework.build/Debug/FlutterFramework.build/Objects-normal/arm64/FlutterFramework-master.dia",
+    "emit-module-dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/FlutterFramework/build/FlutterFramework.build/Debug/FlutterFramework.build/Objects-normal/arm64/FlutterFramework-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/FlutterFramework/build/FlutterFramework.build/Debug/FlutterFramework.build/Objects-normal/arm64/FlutterFramework-master-emit-module.dia",
+    "swift-dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/FlutterFramework/build/FlutterFramework.build/Debug/FlutterFramework.build/Objects-normal/arm64/FlutterFramework-master.swiftdeps"
+  },
+  "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/FlutterFramework/Sources/FlutterFramework/FlutterFramework.swift" : {
+    "const-values" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/FlutterFramework/build/FlutterFramework.build/Debug/FlutterFramework.build/Objects-normal/arm64/FlutterFramework.swiftconstvalues",
+    "dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/FlutterFramework/build/FlutterFramework.build/Debug/FlutterFramework.build/Objects-normal/arm64/FlutterFramework.d",
+    "diagnostics" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/FlutterFramework/build/FlutterFramework.build/Debug/FlutterFramework.build/Objects-normal/arm64/FlutterFramework.dia",
+    "index-unit-output-path" : "/FlutterFramework.build/Debug/FlutterFramework.build/Objects-normal/arm64/FlutterFramework.o",
+    "llvm-bc" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/FlutterFramework/build/FlutterFramework.build/Debug/FlutterFramework.build/Objects-normal/arm64/FlutterFramework.bc",
+    "object" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/FlutterFramework/build/FlutterFramework.build/Debug/FlutterFramework.build/Objects-normal/arm64/FlutterFramework.o",
+    "swift-dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/FlutterFramework/build/FlutterFramework.build/Debug/FlutterFramework.build/Objects-normal/arm64/FlutterFramework.swiftdeps",
+    "swiftmodule" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/FlutterFramework/build/FlutterFramework.build/Debug/FlutterFramework.build/Objects-normal/arm64/FlutterFramework~partial.swiftmodule"
+  }
+}

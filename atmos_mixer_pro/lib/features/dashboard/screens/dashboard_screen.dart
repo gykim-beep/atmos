@@ -104,7 +104,7 @@ class DashboardScreen extends ConsumerWidget {
                   final config = ref.read(configProvider);
                   if (config != null && config.rooms.isNotEmpty) {
                     final firstRoom = config.rooms.first;
-                    ref.read(engineStateProvider.notifier).setActiveRoom(firstRoom.id);
+                    ref.read(engineStateProvider.notifier).startTheme(firstRoom.id);
                     for (final track in firstRoom.tracks) {
                       if (track.isLoop) {
                         try {
@@ -161,7 +161,7 @@ class DashboardScreen extends ConsumerWidget {
                     }
                   }
                 },
-                child: const Text('💾 설정 보내기', style: TextStyle(color: Colors.white)),
+                child: const Text('💾 설정 저장', style: TextStyle(color: Colors.white)),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00838F)),
@@ -282,11 +282,13 @@ class DashboardScreen extends ConsumerWidget {
           accentColor = AppColors.primaryNeon;
         }
 
+        final isThemeStarted = engineState.themeStarted;
         final isActive = engineState.activeRoomId == room.id;
         final isCleared = engineState.clearedRoomIds.contains(room.id);
 
         return RoomCard(
           room: room,
+          isThemeStarted: isThemeStarted,
           isActive: isActive,
           isCleared: isCleared,
           accentColor: accentColor,

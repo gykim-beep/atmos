@@ -1,0 +1,31 @@
+Target dependency graph (13 targets)
+Target 'Runner' in project 'Runner'
+➜ Explicit dependency on target 'Flutter Assemble' in project 'Runner'
+➜ Explicit dependency on target 'FlutterGeneratedPluginSwiftPackage' in project 'FlutterGeneratedPluginSwiftPackage'
+Target 'FlutterGeneratedPluginSwiftPackage' in project 'FlutterGeneratedPluginSwiftPackage'
+➜ Explicit dependency on target 'FlutterGeneratedPluginSwiftPackage' in project 'FlutterGeneratedPluginSwiftPackage'
+➜ Explicit dependency on target 'window-manager' in project 'window_manager'
+➜ Explicit dependency on target 'screen-retriever-macos' in project 'screen_retriever_macos'
+➜ Explicit dependency on target 'file-picker' in project 'file_picker'
+➜ Explicit dependency on target 'FlutterFramework' in project 'FlutterFramework'
+Target 'FlutterGeneratedPluginSwiftPackage' in project 'FlutterGeneratedPluginSwiftPackage'
+➜ Explicit dependency on target 'window-manager' in project 'window_manager'
+➜ Explicit dependency on target 'screen-retriever-macos' in project 'screen_retriever_macos'
+➜ Explicit dependency on target 'file-picker' in project 'file_picker'
+➜ Explicit dependency on target 'FlutterFramework' in project 'FlutterFramework'
+Target 'FlutterFramework' in project 'FlutterFramework'
+➜ Explicit dependency on target 'FlutterFramework' in project 'FlutterFramework'
+Target 'FlutterFramework' in project 'FlutterFramework' (no dependencies)
+Target 'file-picker' in project 'file_picker'
+➜ Explicit dependency on target 'file_picker' in project 'file_picker'
+➜ Explicit dependency on target 'file_picker_file_picker' in project 'file_picker'
+Target 'file_picker' in project 'file_picker'
+➜ Explicit dependency on target 'file_picker_file_picker' in project 'file_picker'
+Target 'file_picker_file_picker' in project 'file_picker' (no dependencies)
+Target 'screen-retriever-macos' in project 'screen_retriever_macos'
+➜ Explicit dependency on target 'screen_retriever_macos' in project 'screen_retriever_macos'
+Target 'screen_retriever_macos' in project 'screen_retriever_macos' (no dependencies)
+Target 'window-manager' in project 'window_manager'
+➜ Explicit dependency on target 'window_manager' in project 'window_manager'
+Target 'window_manager' in project 'window_manager' (no dependencies)
+Target 'Flutter Assemble' in project 'Runner' (no dependencies)

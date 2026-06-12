@@ -40,6 +40,7 @@ pub struct GlobalEngineState {
     pub vu_levels: Vec<AtomicU32>,
     pub sound_cache: RwLock<HashMap<String, Arc<SoundData>>>,
     pub config: RwLock<Option<AppConfig>>,
+    pub playing_track_ids: RwLock<Vec<String>>,
 }
 
 impl Default for GlobalEngineState {
@@ -70,15 +71,18 @@ impl GlobalEngineState {
             vu_levels: vu,
             sound_cache: RwLock::new(HashMap::new()),
             config: RwLock::new(None),
+            playing_track_ids: RwLock::new(Vec::new()),
         }
     }
 
     pub fn broadcast_state(&self) {
         let room_id = self.active_room_id.read().unwrap().clone();
         let ducking = self.is_ducking.load(Ordering::Relaxed);
+        let playing_track_ids = self.playing_track_ids.read().unwrap().clone();
         let _ = self.state_sender.try_send(EngineStateUpdate {
             active_room_id: room_id,
             ducking_active: ducking,
+            playing_track_ids,
         });
     }
 
@@ -98,5 +102,31 @@ impl GlobalEngineState {
     pub fn log(&self, msg: String) {
         println!("{}", msg);
         let _ = self.log_sender.try_send(msg);
+    }
+
+    pub fn add_playing_track(&self, track_id: String) {
+        let mut guard = self.playing_track_ids.write().unwrap();
+        if !guard.contains(&track_id) {
+            guard.push(track_id);
+        }
+        drop(guard);
+        self.broadcast_state();
+    }
+
+    pub fn remove_playing_track(&self, track_id: &str) {
+        let mut guard = self.playing_track_ids.write().unwrap();
+        if let Some(pos) = guard.iter().position(|x| x == track_id) {
+            guard.remove(pos);
+            drop(guard);
+            self.broadcast_state();
+        }
+    }
+
+    pub fn clear_playing_tracks(&self) {
+        {
+            let mut guard = self.playing_track_ids.write().unwrap();
+            guard.clear();
+        }
+        self.broadcast_state();
     }
 }

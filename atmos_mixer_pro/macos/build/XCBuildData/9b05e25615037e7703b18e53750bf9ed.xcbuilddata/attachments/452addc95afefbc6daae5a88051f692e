@@ -1,0 +1,28 @@
+{
+  "" : {
+    "diagnostics" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/window_manager-master.dia",
+    "emit-module-dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/window_manager-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/window_manager-master-emit-module.dia",
+    "swift-dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/window_manager-master.swiftdeps"
+  },
+  "/Users/Allweno/.pub-cache/hosted/pub.dev/window_manager-0.5.1/macos/window_manager/Sources/window_manager/WindowManager.swift" : {
+    "const-values" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/WindowManager.swiftconstvalues",
+    "dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/WindowManager.d",
+    "diagnostics" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/WindowManager.dia",
+    "index-unit-output-path" : "/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/WindowManager.o",
+    "llvm-bc" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/WindowManager.bc",
+    "object" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/WindowManager.o",
+    "swift-dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/WindowManager.swiftdeps",
+    "swiftmodule" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/WindowManager~partial.swiftmodule"
+  },
+  "/Users/Allweno/.pub-cache/hosted/pub.dev/window_manager-0.5.1/macos/window_manager/Sources/window_manager/WindowManagerPlugin.swift" : {
+    "const-values" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/WindowManagerPlugin.swiftconstvalues",
+    "dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/WindowManagerPlugin.d",
+    "diagnostics" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/WindowManagerPlugin.dia",
+    "index-unit-output-path" : "/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/WindowManagerPlugin.o",
+    "llvm-bc" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/WindowManagerPlugin.bc",
+    "object" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/WindowManagerPlugin.o",
+    "swift-dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/WindowManagerPlugin.swiftdeps",
+    "swiftmodule" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/window_manager-0.5.1/build/window_manager.build/Debug/window_manager.build/Objects-normal/x86_64/WindowManagerPlugin~partial.swiftmodule"
+  }
+}

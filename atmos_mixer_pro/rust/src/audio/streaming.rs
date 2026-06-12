@@ -29,6 +29,25 @@ impl DiskStreamer {
         let path = std::path::PathBuf::from(file_path);
         let run_flag = is_running.clone();
         
+        let file_for_probe = std::fs::File::open(&path)?;
+        let mss_probe = symphonia::core::io::MediaSourceStream::new(Box::new(file_for_probe), Default::default());
+        let mut hint = symphonia::core::probe::Hint::new();
+        if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
+            hint.with_extension(&ext.to_lowercase());
+        }
+        let format_opts = symphonia::core::formats::FormatOptions::default();
+        let metadata_opts = symphonia::core::meta::MetadataOptions::default();
+        let decoder_opts = symphonia::core::codecs::DecoderOptions::default();
+
+        let probed = symphonia::default::get_probe()
+            .format(&hint, mss_probe, &format_opts, &metadata_opts)?;
+        
+        let track = probed.format.default_track().ok_or_else(|| anyhow::anyhow!("No default track"))?;
+        let sample_rate = track.codec_params.sample_rate.unwrap_or(48000);
+        let channels = track.codec_params.channels.map(|c| c.count() as u16).unwrap_or(2);
+        let max_frames = track.codec_params.max_frames_per_packet.unwrap_or(4096);
+        let track_id = track.id;
+
         std::thread::spawn(move || {
             let file = match std::fs::File::open(&path) {
                 Ok(f) => Box::new(f),
@@ -39,11 +58,6 @@ impl DiskStreamer {
             };
             
             let mss = symphonia::core::io::MediaSourceStream::new(file, Default::default());
-            let hint = symphonia::core::probe::Hint::new();
-            let format_opts = symphonia::core::formats::FormatOptions::default();
-            let metadata_opts = symphonia::core::meta::MetadataOptions::default();
-            let decoder_opts = symphonia::core::codecs::DecoderOptions::default();
-            
             let probed = match symphonia::default::get_probe()
                 .format(&hint, mss, &format_opts, &metadata_opts) {
                 Ok(p) => p,
@@ -71,7 +85,6 @@ impl DiskStreamer {
                 }
             };
             
-            let track_id = track.id;
             let mut sample_buf = None;
             
             while run_flag.load(Ordering::Relaxed) {
@@ -84,17 +97,23 @@ impl DiskStreamer {
                     Err(symphonia::core::errors::Error::IoError(err)) => {
                         if err.kind() == std::io::ErrorKind::UnexpectedEof {
                             // Re-open and reset for loop
-                            let f = Box::new(std::fs::File::open(&path).unwrap());
-                            let mss_loop = symphonia::core::io::MediaSourceStream::new(f, Default::default());
-                            let probed_loop = symphonia::default::get_probe()
-                                .format(&hint, mss_loop, &format_opts, &metadata_opts).unwrap();
-                            format = probed_loop.format;
-                            decoder.reset();
-                            continue;
+                            if let Ok(f) = std::fs::File::open(&path) {
+                                let mss_loop = symphonia::core::io::MediaSourceStream::new(Box::new(f), Default::default());
+                                if let Ok(probed_loop) = symphonia::default::get_probe()
+                                    .format(&hint, mss_loop, &format_opts, &metadata_opts) {
+                                    format = probed_loop.format;
+                                    decoder.reset();
+                                    continue;
+                                }
+                            }
                         }
-                        break;
+                        break; // Stop on severe IO error
                     }
-                    Err(_) => break,
+                    Err(e) => {
+                        eprintln!("Packet error: {}", e);
+                        // For bad metadata/tags interpreted as packets, we should just continue instead of breaking
+                        continue;
+                    }
                 };
                 
                 if packet.track_id() != track_id {
@@ -105,7 +124,7 @@ impl DiskStreamer {
                     Ok(audio_buf) => {
                         if sample_buf.is_none() {
                             let spec = *audio_buf.spec();
-                            let duration = audio_buf.capacity() as u64;
+                            let duration = std::cmp::max(audio_buf.capacity() as u64, max_frames);
                             sample_buf = Some(symphonia::core::audio::SampleBuffer::<f32>::new(duration, spec));
                         }
                         
@@ -122,7 +141,13 @@ impl DiskStreamer {
                             }
                         }
                     }
-                    Err(_) => break,
+                    Err(symphonia::core::errors::Error::DecodeError(e)) => {
+                        eprintln!("Decode error (ignoring): {}", e);
+                    }
+                    Err(e) => {
+                        eprintln!("Fatal decode error: {}", e);
+                        break;
+                    }
                 }
             }
         });
@@ -130,8 +155,8 @@ impl DiskStreamer {
         Ok(Self {
             chunk_receiver: rx,
             is_running,
-            sample_rate: 48000, // TBD: extract from file
-            channels: 2,
+            sample_rate,
+            channels,
         })
     }
 }

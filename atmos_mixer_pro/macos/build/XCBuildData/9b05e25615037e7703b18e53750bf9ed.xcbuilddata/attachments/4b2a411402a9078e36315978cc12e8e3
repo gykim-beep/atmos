@@ -1,0 +1,28 @@
+{
+  "" : {
+    "diagnostics" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/file_picker-master.dia",
+    "emit-module-dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/file_picker-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/file_picker-master-emit-module.dia",
+    "swift-dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/file_picker-master.swiftdeps"
+  },
+  "/Users/Allweno/.pub-cache/hosted/pub.dev/file_picker-11.0.2/macos/file_picker/Sources/file_picker/FilePickerPlugin.swift" : {
+    "const-values" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/FilePickerPlugin.swiftconstvalues",
+    "dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/FilePickerPlugin.d",
+    "diagnostics" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/FilePickerPlugin.dia",
+    "index-unit-output-path" : "/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/FilePickerPlugin.o",
+    "llvm-bc" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/FilePickerPlugin.bc",
+    "object" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/FilePickerPlugin.o",
+    "swift-dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/FilePickerPlugin.swiftdeps",
+    "swiftmodule" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/FilePickerPlugin~partial.swiftmodule"
+  },
+  "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/DerivedSources/resource_bundle_accessor.swift" : {
+    "const-values" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/resource_bundle_accessor.swiftconstvalues",
+    "dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/resource_bundle_accessor.d",
+    "diagnostics" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/resource_bundle_accessor.dia",
+    "index-unit-output-path" : "/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/resource_bundle_accessor.o",
+    "llvm-bc" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/resource_bundle_accessor.bc",
+    "object" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/resource_bundle_accessor.o",
+    "swift-dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/resource_bundle_accessor.swiftdeps",
+    "swiftmodule" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/file_picker-11.0.2/build/file_picker.build/Debug/file_picker.build/Objects-normal/x86_64/resource_bundle_accessor~partial.swiftmodule"
+  }
+}

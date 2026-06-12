@@ -1,0 +1,18 @@
+{
+  "" : {
+    "diagnostics" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/screen_retriever_macos-0.2.1/build/screen_retriever_macos.build/Debug/screen_retriever_macos.build/Objects-normal/arm64/screen_retriever_macos-master.dia",
+    "emit-module-dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/screen_retriever_macos-0.2.1/build/screen_retriever_macos.build/Debug/screen_retriever_macos.build/Objects-normal/arm64/screen_retriever_macos-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/screen_retriever_macos-0.2.1/build/screen_retriever_macos.build/Debug/screen_retriever_macos.build/Objects-normal/arm64/screen_retriever_macos-master-emit-module.dia",
+    "swift-dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/screen_retriever_macos-0.2.1/build/screen_retriever_macos.build/Debug/screen_retriever_macos.build/Objects-normal/arm64/screen_retriever_macos-master.swiftdeps"
+  },
+  "/Users/Allweno/.pub-cache/hosted/pub.dev/screen_retriever_macos-0.2.1/macos/screen_retriever_macos/Classes/ScreenRetrieverMacosPlugin.swift" : {
+    "const-values" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/screen_retriever_macos-0.2.1/build/screen_retriever_macos.build/Debug/screen_retriever_macos.build/Objects-normal/arm64/ScreenRetrieverMacosPlugin.swiftconstvalues",
+    "dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/screen_retriever_macos-0.2.1/build/screen_retriever_macos.build/Debug/screen_retriever_macos.build/Objects-normal/arm64/ScreenRetrieverMacosPlugin.d",
+    "diagnostics" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/screen_retriever_macos-0.2.1/build/screen_retriever_macos.build/Debug/screen_retriever_macos.build/Objects-normal/arm64/ScreenRetrieverMacosPlugin.dia",
+    "index-unit-output-path" : "/screen_retriever_macos.build/Debug/screen_retriever_macos.build/Objects-normal/arm64/ScreenRetrieverMacosPlugin.o",
+    "llvm-bc" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/screen_retriever_macos-0.2.1/build/screen_retriever_macos.build/Debug/screen_retriever_macos.build/Objects-normal/arm64/ScreenRetrieverMacosPlugin.bc",
+    "object" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/screen_retriever_macos-0.2.1/build/screen_retriever_macos.build/Debug/screen_retriever_macos.build/Objects-normal/arm64/ScreenRetrieverMacosPlugin.o",
+    "swift-dependencies" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/screen_retriever_macos-0.2.1/build/screen_retriever_macos.build/Debug/screen_retriever_macos.build/Objects-normal/arm64/ScreenRetrieverMacosPlugin.swiftdeps",
+    "swiftmodule" : "/Users/Allweno/Documents/GitHub/atmos/atmos_mixer_pro/macos/Flutter/ephemeral/Packages/.packages/screen_retriever_macos-0.2.1/build/screen_retriever_macos.build/Debug/screen_retriever_macos.build/Objects-normal/arm64/ScreenRetrieverMacosPlugin~partial.swiftmodule"
+  }
+}

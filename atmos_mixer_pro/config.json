@@ -1,16 +1,8 @@
 {
   "osc_port": 8000,
-  "device_name": null,
+  "device_name": "MacBook Pro 스피커",
   "buffer_size": 256,
   "rooms": [
-    {
-      "id": "room_1781227238066",
-      "name": "새로운 룸",
-      "color_hex": "#00FFCC",
-      "volume": 1.0,
-      "clear_osc_address": "/room/clear",
-      "tracks": []
-    },
     {
       "id": "room_1781227238600",
       "name": "새로운 룸",
@@ -20,9 +12,17 @@
       "tracks": []
     },
     {
-      "id": "room_1781227239306",
+      "id": "room_1781257072971",
       "name": "새로운 룸",
-      "color_hex": "#00FFCC",
+      "color_hex": "#6A1B9A",
+      "volume": 1.0,
+      "clear_osc_address": "/room/clear",
+      "tracks": []
+    },
+    {
+      "id": "room_1781257073848",
+      "name": "새로운 룸",
+      "color_hex": "#2E7D32",
       "volume": 1.0,
       "clear_osc_address": "/room/clear",
       "tracks": []

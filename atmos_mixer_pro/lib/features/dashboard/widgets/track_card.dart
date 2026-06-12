@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:atmos_mixer_pro/core/theme/colors.dart';
 import 'package:atmos_mixer_pro/src/rust/common/config.dart';
-import 'vu_meter.dart';
+import 'package:atmos_mixer_pro/src/rust/api/simple.dart' as rust_api;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:atmos_mixer_pro/core/state/global_state.dart';
+
+final deviceChannelsProvider = FutureProvider<List<String>>((ref) async {
+  final config = ref.watch(configProvider);
+  if (config?.deviceName == null) return ['Ch 1', 'Ch 2'];
+  try {
+    return await rust_api.apiGetDeviceChannelNames(deviceName: config!.deviceName!);
+  } catch (e) {
+    return ['Ch 1', 'Ch 2'];
+  }
+});
 
 class TrackCard extends ConsumerStatefulWidget {
   final TrackConfig track;
@@ -35,10 +45,33 @@ class TrackCard extends ConsumerStatefulWidget {
 }
 
 class _TrackCardState extends ConsumerState<TrackCard> {
-  bool _isPlaying = false;
+  late TextEditingController _nameController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.track.name);
+  }
+
+  @override
+  void didUpdateWidget(TrackCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.track.name != widget.track.name && _nameController.text != widget.track.name) {
+      _nameController.text = widget.track.name;
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final engineState = ref.watch(engineStateProvider);
+    final isPlaying = engineState.playingTrackIds.contains(widget.track.id);
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
       padding: const EdgeInsets.all(8),
@@ -47,8 +80,10 @@ class _TrackCardState extends ConsumerState<TrackCard> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: widget.accentColor.withValues(alpha: 0.3)),
       ),
-      child: Row(
-        children: [
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,23 +91,27 @@ class _TrackCardState extends ConsumerState<TrackCard> {
                 // Row 1: Controls & Name
           Row(
             children: [
-              IconButton(
-                icon: Icon(_isPlaying ? Icons.stop : Icons.play_arrow),
-                color: _isPlaying ? const Color(0xFF8B0000) : const Color(0xFF1E6B22),
-                iconSize: 20,
-                onPressed: () {
-                  if (_isPlaying) {
-                    widget.onStop?.call();
-                  } else {
-                    widget.onPlay?.call();
-                  }
-                  setState(() => _isPlaying = !_isPlaying);
-                },
-                tooltip: _isPlaying ? '정지' : '재생',
+              Padding(
+                padding: const EdgeInsets.only(right: 4.0),
+                child: IconButton(
+                  icon: Icon(isPlaying ? Icons.stop : Icons.play_arrow),
+                  color: isPlaying ? const Color(0xFF8B0000) : const Color(0xFF1E6B22),
+                  iconSize: 22,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  onPressed: () {
+                    if (isPlaying) {
+                      widget.onStop?.call();
+                    } else {
+                      widget.onPlay?.call();
+                    }
+                  },
+                  tooltip: isPlaying ? '정지' : '재생',
+                ),
               ),
               Expanded(
                 child: TextField(
-                  controller: TextEditingController(text: widget.track.name),
+                  controller: _nameController,
                   style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
                   decoration: const InputDecoration(
                     isDense: true,
@@ -116,60 +155,32 @@ class _TrackCardState extends ConsumerState<TrackCard> {
                 style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
               ),
               const SizedBox(width: 8),
-              Tooltip(
-                message: '무한 루프 (BGM)',
-                child: Switch(
-                  value: widget.track.isLoop,
-                  onChanged: widget.onLoopChanged,
-                  activeThumbColor: widget.accentColor,
+              IconButton(
+                icon: Icon(
+                  Icons.all_inclusive,
+                  shadows: widget.track.isLoop 
+                      ? [Shadow(color: widget.accentColor, blurRadius: 8)] 
+                      : null,
                 ),
+                color: widget.track.isLoop ? widget.accentColor : AppColors.darkGrey,
+                iconSize: 20,
+                onPressed: () => widget.onLoopChanged?.call(!widget.track.isLoop),
+                tooltip: '무한 루프 (BGM)',
               ),
               const SizedBox(width: 8),
-              DropdownButtonHideUnderline(
-                child: Builder(
-                  builder: (context) {
-                    ref.watch(routingMatrixProvider); // Trigger rebuild on matrix change
-                    final labels = ref.read(routingMatrixProvider.notifier).activeChannelLabels;
-                    final items = labels.map((label) {
-                      int val = int.parse(label.split('/').first);
-                      return DropdownMenuItem<int>(
-                        value: val,
-                        child: Text('🔌 Out $label'),
-                      );
-                    }).toList();
-                    
-                    // Ensure current value exists
-                    if (!items.any((item) => item.value == widget.track.outputChannel)) {
-                      items.add(DropdownMenuItem<int>(
-                        value: widget.track.outputChannel,
-                        child: Text('🔌 Out ${widget.track.outputChannel} (Off)'),
-                      ));
-                    }
-                    
-                    return DropdownButton<int>(
-                      value: widget.track.outputChannel,
-                      icon: const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary, size: 16),
-                      isDense: true,
-                      dropdownColor: AppColors.cardSurface,
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 10),
-                      items: items,
-                      onChanged: (val) {
-                        if (val != null) {
-                          widget.onOutputChanged?.call(val);
-                        }
-                      },
-                    );
-                  }
-                ),
+              Text(
+                widget.track.outputStereo 
+                    ? 'Ext. Out: ${widget.track.outputChannel}/${widget.track.outputChannel + 1}' 
+                    : 'Ext. Out: ${widget.track.outputChannel}',
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
               ),
             ],
           ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          NeonVUMeter(outputChannel: widget.track.outputChannel),
-        ],
+          ],
+        ),
       ),
     );
   }

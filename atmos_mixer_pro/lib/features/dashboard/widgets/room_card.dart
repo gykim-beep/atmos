@@ -104,6 +104,7 @@ class _HoverGlowButtonState extends State<HoverGlowButton> {
 
 class RoomCard extends ConsumerStatefulWidget {
   final RoomConfig room;
+  final bool isThemeStarted;
   final bool isActive;
   final bool isCleared;
   final Color accentColor;
@@ -111,6 +112,7 @@ class RoomCard extends ConsumerStatefulWidget {
   const RoomCard({
     super.key,
     required this.room,
+    required this.isThemeStarted,
     required this.isActive,
     required this.isCleared,
     required this.accentColor,
@@ -146,10 +148,14 @@ class _RoomCardState extends ConsumerState<RoomCard> {
   @override
   Widget build(BuildContext context) {
     final room = widget.room;
+    final isThemeStarted = widget.isThemeStarted;
     final isActive = widget.isActive;
     final isCleared = widget.isCleared;
     final accentColor = widget.accentColor;
-    final AppConfig? config = ref.read(configProvider);
+    final AppConfig? config = ref.watch(configProvider);
+    
+    final canInteract = !isThemeStarted || isActive;
+
     return Container(
       width: 350,
       margin: const EdgeInsets.only(right: 16),
@@ -163,9 +169,10 @@ class _RoomCardState extends ConsumerState<RoomCard> {
       ),
       child: Stack(
         children: [
-          IgnorePointer(
-            ignoring: !isActive,
-            child: Column(
+          Positioned.fill(
+            child: IgnorePointer(
+              ignoring: !canInteract,
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
               // Header
@@ -193,7 +200,7 @@ class _RoomCardState extends ConsumerState<RoomCard> {
                                 contentPadding: EdgeInsets.zero,
                                 border: InputBorder.none,
                               ),
-                              onSubmitted: (v) {
+                              onChanged: (v) {
                                 if (config != null) {
                                   final newRooms = List<RoomConfig>.from(config.rooms);
                                   final idx = newRooms.indexWhere((r) => r.id == room.id);
@@ -271,27 +278,33 @@ class _RoomCardState extends ConsumerState<RoomCard> {
                         baseColor: AppColors.darkGrey,
                         glowColor: Colors.white,
                         onPressed: () async {
-                          FilePickerResult? result = await FilePicker.pickFiles(type: FileType.audio);
-                          if (result != null && result.files.single.path != null && config != null) {
-                            final path = result.files.single.path!;
-                            final name = result.files.single.name;
-                            final newTrack = TrackConfig(
-                              id: 'track_${DateTime.now().millisecondsSinceEpoch}',
-                              name: name,
-                              filePath: path,
-                              volume: 1.0,
-                              isLoop: false,
-                              outputChannel: 1,
-                              outputStereo: true,
-                              playOscAddress: '/play',
-                              stopOscAddress: '/stop',
-                            );
-                            final newRooms = List<RoomConfig>.from(config.rooms);
-                            final idx = newRooms.indexWhere((r) => r.id == room.id);
-                            if (idx != -1) {
-                              final newTracks = List<TrackConfig>.from(newRooms[idx].tracks)..add(newTrack);
-                              newRooms[idx] = RoomConfig(id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks);
-                              ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: config.oscPort, deviceName: config.deviceName, bufferSize: config.bufferSize, rooms: newRooms));
+                          FilePickerResult? result = await FilePicker.pickFiles(
+                            type: FileType.custom,
+                            allowedExtensions: ['mp3', 'wav', 'aac', 'flac', 'm4a', 'ogg', 'aiff'],
+                          );
+                          if (result != null && result.files.single.path != null) {
+                            final currentConfig = ref.read(configProvider);
+                            if (currentConfig != null) {
+                              final path = result.files.single.path!;
+                              final name = result.files.single.name;
+                              final newTrack = TrackConfig(
+                                id: 'track_${DateTime.now().millisecondsSinceEpoch}',
+                                name: name,
+                                filePath: path,
+                                volume: 1.0,
+                                isLoop: false,
+                                outputChannel: 1,
+                                outputStereo: true,
+                                playOscAddress: '/play',
+                                stopOscAddress: '/stop',
+                              );
+                              final newRooms = List<RoomConfig>.from(currentConfig.rooms);
+                              final idx = newRooms.indexWhere((r) => r.id == room.id);
+                              if (idx != -1) {
+                                final newTracks = List<TrackConfig>.from(newRooms[idx].tracks)..add(newTrack);
+                                newRooms[idx] = RoomConfig(id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks);
+                                ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: currentConfig.oscPort, deviceName: currentConfig.deviceName, bufferSize: currentConfig.bufferSize, rooms: newRooms));
+                              }
                             }
                           }
                         },
@@ -330,6 +343,9 @@ class _RoomCardState extends ConsumerState<RoomCard> {
                                   }
                                 }
                               }
+                            } else {
+                              // It's the last room
+                              ref.read(engineStateProvider.notifier).clearActiveRoom();
                             }
                           }
                         } : null,
@@ -364,19 +380,20 @@ class _RoomCardState extends ConsumerState<RoomCard> {
                         }
                       },
                       onDelete: () async {
-                        if (config != null) {
-                          bool? confirm = await _showDeleteConfirmDialog(
-                            context, 
-                            '트랙 삭제', 
-                            '[${track.name}] 오디오 트랙을 영구적으로 삭제하시겠습니까?'
-                          );
-                          if (confirm == true) {
-                            final newRooms = List<RoomConfig>.from(config.rooms);
+                        bool? confirm = await _showDeleteConfirmDialog(
+                          context, 
+                          '트랙 삭제', 
+                          '[${track.name}] 오디오 트랙을 영구적으로 삭제하시겠습니까?'
+                        );
+                        if (confirm == true) {
+                          final currentConfig = ref.read(configProvider);
+                          if (currentConfig != null) {
+                            final newRooms = List<RoomConfig>.from(currentConfig.rooms);
                             final idx = newRooms.indexWhere((r) => r.id == room.id);
                             if (idx != -1) {
                               final newTracks = newRooms[idx].tracks.where((t) => t.id != track.id).toList();
                               newRooms[idx] = RoomConfig(id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks);
-                              ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: config.oscPort, deviceName: config.deviceName, bufferSize: config.bufferSize, rooms: newRooms));
+                              ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: currentConfig.oscPort, deviceName: currentConfig.deviceName, bufferSize: currentConfig.bufferSize, rooms: newRooms));
                             }
                           }
                         }
@@ -433,15 +450,16 @@ class _RoomCardState extends ConsumerState<RoomCard> {
               ),
             ],
           ),
+            ),
           ),
 
           // Locked / Cleared Badge & Glassmorphism Overlay
-          if (!isActive)
+          if (isThemeStarted && !isActive)
             Positioned.fill(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                  filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
                   child: Container(
                     color: Colors.black.withValues(alpha: 0.4),
                     alignment: Alignment.topCenter,

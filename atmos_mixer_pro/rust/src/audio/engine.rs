@@ -38,10 +38,11 @@ impl AudioEngine {
 
         println!("Stream config: {:?}", config);
 
-        let (gc_tx, gc_rx) = crossbeam_channel::bounded(256);
+        let (gc_tx, gc_rx) = crossbeam_channel::bounded::<crate::audio::player::SoundInstance>(256);
         std::thread::spawn(move || {
-            while let Ok(_dropped) = gc_rx.recv() {
+            while let Ok(dropped) = gc_rx.recv() {
                 // Instance is dropped here in a background thread, preventing GC in audio thread.
+                crate::core::state::GLOBAL_STATE.remove_playing_track(&dropped.track_id_str);
             }
         });
 
@@ -72,10 +73,11 @@ impl AudioEngine {
         // Lock-free pop from command queue
         while let Ok(cmd) = rx.try_recv() {
             match cmd {
-                AudioCommand::PlayTrack { room_id, track_id, data, stream_receiver, stream_sample_rate, is_loop, volume: _, output_channel, output_stereo } => {
+                AudioCommand::PlayTrack { room_id, track_id, track_id_str, data, stream_receiver, stream_sample_rate, is_loop, volume: _, output_channel, output_stereo } => {
                     let instance = crate::audio::player::SoundInstance::new(
                         track_id,
                         room_id,
+                        track_id_str,
                         data,
                         stream_receiver,
                         stream_sample_rate,

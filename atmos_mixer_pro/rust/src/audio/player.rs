@@ -19,7 +19,10 @@ impl SoundData {
         let file = Box::new(File::open(path)?);
         let mss = MediaSourceStream::new(file, Default::default());
 
-        let hint = Hint::new();
+        let mut hint = Hint::new();
+        if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
+            hint.with_extension(&ext.to_lowercase());
+        }
         let format_opts = FormatOptions::default();
         let metadata_opts = MetadataOptions::default();
         let decoder_opts = DecoderOptions::default();
@@ -35,6 +38,7 @@ impl SoundData {
         let track_id = track.id;
         let sample_rate = track.codec_params.sample_rate.unwrap_or(48000);
         let channels = track.codec_params.channels.map(|c| c.count() as u16).unwrap_or(2);
+        let max_frames = track.codec_params.max_frames_per_packet.unwrap_or(4096);
 
         let mut sample_buf = None;
         let mut all_samples = Vec::new();
@@ -63,7 +67,7 @@ impl SoundData {
                 Ok(audio_buf) => {
                     if sample_buf.is_none() {
                         let spec = *audio_buf.spec();
-                        let duration = audio_buf.capacity() as u64;
+                        let duration = std::cmp::max(audio_buf.capacity() as u64, max_frames);
                         sample_buf = Some(SampleBuffer::<f32>::new(duration, spec));
                     }
 
@@ -88,6 +92,7 @@ impl SoundData {
 pub struct SoundInstance {
     pub id: u32,
     pub room_id: u32,
+    pub track_id_str: String,
     pub data: Option<Arc<SoundData>>,
     pub stream_receiver: Option<crossbeam_channel::Receiver<Vec<f32>>>,
     pub stream_buffer: Vec<f32>,
@@ -107,6 +112,7 @@ impl SoundInstance {
     pub fn new(
         id: u32, 
         room_id: u32, 
+        track_id_str: String,
         data: Option<Arc<SoundData>>, 
         stream_receiver: Option<crossbeam_channel::Receiver<Vec<f32>>>,
         stream_sample_rate: u32,
@@ -117,6 +123,7 @@ impl SoundInstance {
         Self {
             id,
             room_id,
+            track_id_str,
             data,
             stream_receiver,
             stream_buffer: Vec::new(),

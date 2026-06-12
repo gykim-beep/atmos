@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color background = Color(0xFF0E0E1C);
+  static const Color background = Color(0xFF0A0C16);
   static const Color headerBackground = Color(0xFF08080F);
-  static const Color cardSurface = Color(0xFF161628);
+  static const Color cardSurface = Color(0x1A1A1D30);
+  static const Color cardSurfaceSolid = Color(0xFF1A1D30);
   static const Color primaryNeon = Color(0xFF00FFCC);
   static const Color danger = Color(0xFFB71C1C);
   static const Color dangerHover = Color(0xFF7F0000);

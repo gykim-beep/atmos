@@ -80,14 +80,25 @@ Future<int> apiGetDeviceChannelCount({required String deviceName}) => RustLib
     .api
     .crateApiSimpleApiGetDeviceChannelCount(deviceName: deviceName);
 
+Future<List<String>> apiGetDeviceChannelNames({required String deviceName}) =>
+    RustLib.instance.api.crateApiSimpleApiGetDeviceChannelNames(
+      deviceName: deviceName,
+    );
+
 class EngineStateUpdate {
   final String? activeRoomId;
   final bool duckingActive;
+  final List<String> playingTrackIds;
 
-  const EngineStateUpdate({this.activeRoomId, required this.duckingActive});
+  const EngineStateUpdate({
+    this.activeRoomId,
+    required this.duckingActive,
+    required this.playingTrackIds,
+  });
 
   @override
-  int get hashCode => activeRoomId.hashCode ^ duckingActive.hashCode;
+  int get hashCode =>
+      activeRoomId.hashCode ^ duckingActive.hashCode ^ playingTrackIds.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -95,17 +106,24 @@ class EngineStateUpdate {
       other is EngineStateUpdate &&
           runtimeType == other.runtimeType &&
           activeRoomId == other.activeRoomId &&
-          duckingActive == other.duckingActive;
+          duckingActive == other.duckingActive &&
+          playingTrackIds == other.playingTrackIds;
 }
 
 class OutputDeviceInfo {
   final String name;
   final int maxChannels;
+  final List<String> channelNames;
 
-  const OutputDeviceInfo({required this.name, required this.maxChannels});
+  const OutputDeviceInfo({
+    required this.name,
+    required this.maxChannels,
+    required this.channelNames,
+  });
 
   @override
-  int get hashCode => name.hashCode ^ maxChannels.hashCode;
+  int get hashCode =>
+      name.hashCode ^ maxChannels.hashCode ^ channelNames.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -113,5 +131,6 @@ class OutputDeviceInfo {
       other is OutputDeviceInfo &&
           runtimeType == other.runtimeType &&
           name == other.name &&
-          maxChannels == other.maxChannels;
+          maxChannels == other.maxChannels &&
+          channelNames == other.channelNames;
 }

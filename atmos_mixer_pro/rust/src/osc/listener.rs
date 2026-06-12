@@ -108,6 +108,7 @@ fn handle_packet(packet: OscPacket, debouncer: &OscDebouncer) {
                         }
                     }
 
+                    crate::core::state::GLOBAL_STATE.clear_playing_tracks();
                     let _ = crate::core::state::GLOBAL_STATE.command_sender.try_send(crate::common::commands::AudioCommand::ClearRoom {
                         room_id: hash_id(&room.id),
                     });
@@ -134,9 +135,11 @@ fn handle_packet(packet: OscPacket, debouncer: &OscDebouncer) {
                                     if next_t.is_loop {
                                         let cache_guard = crate::core::state::GLOBAL_STATE.sound_cache.read().unwrap();
                                         if let Some(data) = cache_guard.get(&next_t.file_path) {
+                                            crate::core::state::GLOBAL_STATE.add_playing_track(next_t.id.clone());
                                             let _ = crate::core::state::GLOBAL_STATE.command_sender.try_send(crate::common::commands::AudioCommand::PlayTrack {
                                                 room_id: hash_id(&next_id),
                                                 track_id: hash_id(&next_t.id),
+                                                track_id_str: next_t.id.clone(),
                                                 data: Some(data.clone()),
                                                 stream_receiver: None,
                                                 stream_sample_rate: data.sample_rate,
@@ -171,9 +174,11 @@ fn handle_packet(packet: OscPacket, debouncer: &OscDebouncer) {
 
                         let cache_guard = crate::core::state::GLOBAL_STATE.sound_cache.read().unwrap();
                         if let Some(data) = cache_guard.get(&track.file_path) {
+                            crate::core::state::GLOBAL_STATE.add_playing_track(track.id.clone());
                             let _ = crate::core::state::GLOBAL_STATE.command_sender.try_send(crate::common::commands::AudioCommand::PlayTrack {
                                 room_id: hash_id(&room.id),
                                 track_id: hash_id(&track.id),
+                                track_id_str: track.id.clone(),
                                 data: Some(data.clone()),
                                 stream_receiver: None,
                                 stream_sample_rate: data.sample_rate,
@@ -199,6 +204,7 @@ fn handle_packet(packet: OscPacket, debouncer: &OscDebouncer) {
                             }
                         }
 
+                        crate::core::state::GLOBAL_STATE.remove_playing_track(&track.id);
                         let _ = crate::core::state::GLOBAL_STATE.command_sender.try_send(crate::common::commands::AudioCommand::StopTrack {
                             room_id: hash_id(&room.id),
                             track_id: hash_id(&track.id),

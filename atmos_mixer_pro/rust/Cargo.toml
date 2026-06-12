@@ -20,3 +20,16 @@ symphonia = { version = "0.5.3", features = ["all"] }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation-sys = "0.8.6"
+coreaudio-sys = "0.2.15"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.58.0", features = [
+    "Win32_Media_Audio",
+    "Win32_System_Com",
+    "Win32_Devices_Properties",
+    "Win32_Foundation",
+    "Win32_UI_Shell_PropertiesSystem"
+] }
