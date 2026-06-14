@@ -124,11 +124,45 @@ class RoomCard extends ConsumerStatefulWidget {
 
 class _RoomCardState extends ConsumerState<RoomCard> {
   late TextEditingController _nameController;
+  late FocusNode _nameFocusNode;
+  bool _isProcessing = false;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.room.name);
+    _nameFocusNode = FocusNode();
+    _nameFocusNode.addListener(() {
+      if (!_nameFocusNode.hasFocus && _nameController.text != widget.room.name) {
+        _saveName(_nameController.text);
+      }
+    });
+  }
+
+  void _saveName(String newName) {
+    final config = ref.read(configProvider);
+    if (config != null) {
+      final newRooms = List<RoomConfig>.from(config.rooms);
+      final idx = newRooms.indexWhere((r) => r.id == widget.room.id);
+      if (idx != -1) {
+        newRooms[idx] = RoomConfig(
+          id: widget.room.id,
+          name: newName,
+          colorHex: widget.room.colorHex,
+          volume: widget.room.volume,
+          clearOscAddress: widget.room.clearOscAddress,
+          tracks: widget.room.tracks,
+        );
+        ref.read(configProvider.notifier).saveConfig(AppConfig(
+          oscPort: config.oscPort,
+          deviceName: config.deviceName,
+          bufferSize: config.bufferSize,
+          themeStartOscAddress: config.themeStartOscAddress,
+          systemResetOscAddress: config.systemResetOscAddress,
+          rooms: newRooms,
+        ));
+      }
+    }
   }
 
   @override
@@ -141,6 +175,7 @@ class _RoomCardState extends ConsumerState<RoomCard> {
 
   @override
   void dispose() {
+    _nameFocusNode.dispose();
     _nameController.dispose();
     super.dispose();
   }
@@ -190,6 +225,7 @@ class _RoomCardState extends ConsumerState<RoomCard> {
                           Expanded(
                             child: TextField(
                               controller: _nameController,
+                              focusNode: _nameFocusNode,
                               style: TextStyle(
                                 color: accentColor,
                                 fontWeight: FontWeight.bold,
@@ -200,16 +236,7 @@ class _RoomCardState extends ConsumerState<RoomCard> {
                                 contentPadding: EdgeInsets.zero,
                                 border: InputBorder.none,
                               ),
-                              onChanged: (v) {
-                                if (config != null) {
-                                  final newRooms = List<RoomConfig>.from(config.rooms);
-                                  final idx = newRooms.indexWhere((r) => r.id == room.id);
-                                  if (idx != -1) {
-                                    newRooms[idx] = RoomConfig(id: room.id, name: v, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: room.tracks);
-                                    ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: config.oscPort, deviceName: config.deviceName, bufferSize: config.bufferSize, rooms: newRooms));
-                                  }
-                                }
-                              },
+                              onSubmitted: _saveName,
                             ),
                           ),
                           Icon(Icons.edit, size: 14, color: accentColor.withValues(alpha: 0.5)),
@@ -235,7 +262,7 @@ class _RoomCardState extends ConsumerState<RoomCard> {
                               final idx = newRooms.indexWhere((r) => r.id == room.id);
                               if (idx != -1) {
                                 newRooms[idx] = RoomConfig(id: room.id, name: room.name, colorHex: room.colorHex, volume: v, clearOscAddress: room.clearOscAddress, tracks: room.tracks);
-                                ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: config.oscPort, deviceName: config.deviceName, bufferSize: config.bufferSize, rooms: newRooms));
+                                ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: config.oscPort, deviceName: config.deviceName, bufferSize: config.bufferSize, themeStartOscAddress: config.themeStartOscAddress, systemResetOscAddress: config.systemResetOscAddress, rooms: newRooms));
                               }
                               rust_api.apiSetMasterVolume(roomId: room.id, volume: v);
                             }
@@ -255,7 +282,7 @@ class _RoomCardState extends ConsumerState<RoomCard> {
                             );
                             if (confirm == true) {
                               final newRooms = config.rooms.where((r) => r.id != room.id).toList();
-                              ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: config.oscPort, deviceName: config.deviceName, bufferSize: config.bufferSize, rooms: newRooms));
+                              ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: config.oscPort, deviceName: config.deviceName, bufferSize: config.bufferSize, themeStartOscAddress: config.themeStartOscAddress, systemResetOscAddress: config.systemResetOscAddress, rooms: newRooms));
                             }
                           }
                         },
@@ -303,7 +330,7 @@ class _RoomCardState extends ConsumerState<RoomCard> {
                               if (idx != -1) {
                                 final newTracks = List<TrackConfig>.from(newRooms[idx].tracks)..add(newTrack);
                                 newRooms[idx] = RoomConfig(id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks);
-                                ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: currentConfig.oscPort, deviceName: currentConfig.deviceName, bufferSize: currentConfig.bufferSize, rooms: newRooms));
+                                ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: currentConfig.oscPort, deviceName: currentConfig.deviceName, bufferSize: currentConfig.bufferSize, themeStartOscAddress: currentConfig.themeStartOscAddress, systemResetOscAddress: currentConfig.systemResetOscAddress, rooms: newRooms));
                               }
                             }
                           }
@@ -318,34 +345,44 @@ class _RoomCardState extends ConsumerState<RoomCard> {
                         baseColor: AppColors.brown,
                         glowColor: AppColors.primaryNeon,
                         onPressed: isActive ? () async {
-                          // TODO: Call rust_api.apiClearRoom when Backend is ready, 
-                          // for now we update frontend state directly to simulate
+                          if (_isProcessing) return;
+                          setState(() { _isProcessing = true; });
                           try {
-                            await rust_api.apiClearRoom(roomId: room.id);
-                          } catch (e) {
-                            ref.read(globalErrorProvider.notifier).showError('룸 클리어 실패: $e');
-                          }
-                          ref.read(engineStateProvider.notifier).clearRoom(room.id);
-                          
-                          // Automatically activate next room if possible
-                          if (config != null) {
-                            final idx = config.rooms.indexWhere((r) => r.id == room.id);
-                            if (idx != -1 && idx + 1 < config.rooms.length) {
-                              final nextRoom = config.rooms[idx + 1];
-                              ref.read(engineStateProvider.notifier).setActiveRoom(nextRoom.id);
-                              // Auto play loop tracks of next room
-                              for (final track in nextRoom.tracks) {
-                                if (track.isLoop) {
-                                  try {
-                                    await rust_api.apiPlayTrack(roomId: nextRoom.id, trackId: track.id);
-                                  } catch (e) {
-                                    ref.read(globalErrorProvider.notifier).showError('트랙 재생 실패: $e');
+                            // TODO: Call rust_api.apiClearRoom when Backend is ready, 
+                            // for now we update frontend state directly to simulate
+                            try {
+                              await rust_api.apiClearRoom(roomId: room.id);
+                            } catch (e) {
+                              ref.read(globalErrorProvider.notifier).showError('룸 클리어 중단: $e');
+                              return; // Error means it's already cleared or not active. Do not auto-promote.
+                            }
+                            
+                            ref.read(engineStateProvider.notifier).clearRoom(room.id);
+                            
+                            // Automatically activate next room if possible
+                            if (config != null) {
+                              final idx = config.rooms.indexWhere((r) => r.id == room.id);
+                              if (idx != -1 && idx + 1 < config.rooms.length) {
+                                final nextRoom = config.rooms[idx + 1];
+                                ref.read(engineStateProvider.notifier).setActiveRoom(nextRoom.id);
+                                // Auto play loop tracks of next room
+                                for (final track in nextRoom.tracks) {
+                                  if (track.isLoop) {
+                                    try {
+                                      await rust_api.apiPlayTrack(roomId: nextRoom.id, trackId: track.id);
+                                    } catch (e) {
+                                      ref.read(globalErrorProvider.notifier).showError('트랙 재생 실패: $e');
+                                    }
                                   }
                                 }
+                              } else {
+                                // It's the last room
+                                ref.read(engineStateProvider.notifier).clearActiveRoom();
                               }
-                            } else {
-                              // It's the last room
-                              ref.read(engineStateProvider.notifier).clearActiveRoom();
+                            }
+                          } finally {
+                            if (mounted) {
+                              setState(() { _isProcessing = false; });
                             }
                           }
                         } : null,
@@ -393,24 +430,27 @@ class _RoomCardState extends ConsumerState<RoomCard> {
                             if (idx != -1) {
                               final newTracks = newRooms[idx].tracks.where((t) => t.id != track.id).toList();
                               newRooms[idx] = RoomConfig(id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks);
-                              ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: currentConfig.oscPort, deviceName: currentConfig.deviceName, bufferSize: currentConfig.bufferSize, rooms: newRooms));
+                              ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: currentConfig.oscPort, deviceName: currentConfig.deviceName, bufferSize: currentConfig.bufferSize, themeStartOscAddress: currentConfig.themeStartOscAddress, systemResetOscAddress: currentConfig.systemResetOscAddress, rooms: newRooms));
                             }
                           }
                         }
                       },
                       onVolumeChanged: (v) {
+                        rust_api.apiSetTrackVolume(roomId: room.id, trackId: track.id, volume: v);
                         if (config != null) {
-                          final newRooms = List<RoomConfig>.from(config.rooms);
-                          final idx = newRooms.indexWhere((r) => r.id == room.id);
-                          if (idx != -1) {
-                            final newTracks = List<TrackConfig>.from(newRooms[idx].tracks);
-                            final tIdx = newTracks.indexWhere((t) => t.id == track.id);
-                            if (tIdx != -1) {
-                              newTracks[tIdx] = TrackConfig(id: track.id, name: track.name, filePath: track.filePath, volume: v, isLoop: track.isLoop, outputChannel: track.outputChannel, outputStereo: track.outputStereo, playOscAddress: track.playOscAddress, stopOscAddress: track.stopOscAddress);
-                              newRooms[idx] = RoomConfig(id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks);
-                              ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: config.oscPort, deviceName: config.deviceName, bufferSize: config.bufferSize, rooms: newRooms));
+                          final currentConfig = ref.read(configProvider);
+                          if (currentConfig != null) {
+                            final newRooms = List<RoomConfig>.from(currentConfig.rooms);
+                            final idx = newRooms.indexWhere((r) => r.id == room.id);
+                            if (idx != -1) {
+                              final newTracks = List<TrackConfig>.from(newRooms[idx].tracks);
+                              final tIdx = newTracks.indexWhere((t) => t.id == track.id);
+                              if (tIdx != -1) {
+                                newTracks[tIdx] = TrackConfig(id: track.id, name: track.name, filePath: track.filePath, volume: v, isLoop: track.isLoop, outputChannel: track.outputChannel, outputStereo: track.outputStereo, playOscAddress: track.playOscAddress, stopOscAddress: track.stopOscAddress);
+                                newRooms[idx] = RoomConfig(id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks);
+                                ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: currentConfig.oscPort, deviceName: currentConfig.deviceName, bufferSize: currentConfig.bufferSize, themeStartOscAddress: currentConfig.themeStartOscAddress, systemResetOscAddress: currentConfig.systemResetOscAddress, rooms: newRooms));
+                              }
                             }
-                            rust_api.apiSetTrackVolume(roomId: room.id, trackId: track.id, volume: v);
                           }
                         }
                       },
@@ -424,7 +464,7 @@ class _RoomCardState extends ConsumerState<RoomCard> {
                             if (tIdx != -1) {
                               newTracks[tIdx] = TrackConfig(id: track.id, name: track.name, filePath: track.filePath, volume: track.volume, isLoop: v, outputChannel: track.outputChannel, outputStereo: track.outputStereo, playOscAddress: track.playOscAddress, stopOscAddress: track.stopOscAddress);
                               newRooms[idx] = RoomConfig(id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks);
-                              ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: config.oscPort, deviceName: config.deviceName, bufferSize: config.bufferSize, rooms: newRooms));
+                              ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: config.oscPort, deviceName: config.deviceName, bufferSize: config.bufferSize, themeStartOscAddress: config.themeStartOscAddress, systemResetOscAddress: config.systemResetOscAddress, rooms: newRooms));
                             }
                           }
                         }
@@ -439,7 +479,7 @@ class _RoomCardState extends ConsumerState<RoomCard> {
                             if (tIdx != -1) {
                               newTracks[tIdx] = TrackConfig(id: track.id, name: v, filePath: track.filePath, volume: track.volume, isLoop: track.isLoop, outputChannel: track.outputChannel, outputStereo: track.outputStereo, playOscAddress: track.playOscAddress, stopOscAddress: track.stopOscAddress);
                               newRooms[idx] = RoomConfig(id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks);
-                              ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: config.oscPort, deviceName: config.deviceName, bufferSize: config.bufferSize, rooms: newRooms));
+                              ref.read(configProvider.notifier).saveConfig(AppConfig(oscPort: config.oscPort, deviceName: config.deviceName, bufferSize: config.bufferSize, themeStartOscAddress: config.themeStartOscAddress, systemResetOscAddress: config.systemResetOscAddress, rooms: newRooms));
                             }
                           }
                         }

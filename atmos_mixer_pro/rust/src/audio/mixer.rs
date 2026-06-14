@@ -41,6 +41,9 @@ impl AudioMixer {
     }
 
     pub fn process(&mut self, output: &mut [f32], out_channels: usize) {
+        if out_channels == 0 || output.is_empty() {
+            return;
+        }
         // Clear output buffer
         for sample in output.iter_mut() {
             *sample = 0.0;
@@ -110,17 +113,13 @@ impl AudioMixer {
                     current_vol *= self.ducking.ducking_weight; // Ducking only affects BGM
                 }
 
-                let step = instance.stream_sample_rate as f32 / self.sample_rate as f32;
+                let step = instance.stream_sample_rate as f64 / self.sample_rate as f64;
                 
-                let channels = if let Some(data) = &instance.data {
-                    data.channels as usize
-                } else {
-                    2 // Assume BGM stream is stereo
-                };
+                let channels = (instance.stream_channels as usize).max(1);
 
-                let idx_f = instance.cursor as f32 * step;
-                let idx_base = idx_f as usize;
-                let frac = idx_f - (idx_base as f32);
+                let mut idx_f = instance.cursor;
+                let mut idx_base = idx_f as usize;
+                let mut frac = (idx_f - (idx_base as f64)) as f32;
                 let mut idx_i = idx_base * channels;
 
                 let mut val_l = 0.0;
@@ -140,11 +139,30 @@ impl AudioMixer {
                 if let Some(stream_rx) = &instance.stream_receiver {
                     if instance.is_loop {
                         if idx_i >= instance.stream_buffer.len() {
-                            if let Ok(new_chunk) = stream_rx.try_recv() {
-                                let old_chunk = std::mem::replace(&mut instance.stream_buffer, new_chunk);
-                                let _ = self.buf_gc_tx.try_send(old_chunk);
-                                instance.cursor = 0;
-                                idx_i = 0;
+                            match stream_rx.try_recv() {
+                                Ok(new_chunk) => {
+                                    let frames_in_chunk = if instance.stream_buffer.is_empty() {
+                                        0.0
+                                    } else {
+                                        (instance.stream_buffer.len() / channels) as f64
+                                    };
+                                    let old_chunk = std::mem::replace(&mut instance.stream_buffer, new_chunk);
+                                    let _ = self.buf_gc_tx.try_send(old_chunk);
+                                    
+                                    instance.cursor -= frames_in_chunk;
+                                    if instance.cursor < 0.0 { instance.cursor = 0.0; } // safety bound
+                                    idx_f = instance.cursor;
+                                    idx_base = idx_f as usize;
+                                    frac = (idx_f - (idx_base as f64)) as f32;
+                                    idx_i = idx_base * channels;
+                                }
+                                Err(crossbeam_channel::TryRecvError::Disconnected) => {
+                                    // Stream finished or errored permanently
+                                    instance.is_stopping = true;
+                                }
+                                Err(crossbeam_channel::TryRecvError::Empty) => {
+                                    // Stream is lagging, just output silence and don't advance cursor
+                                }
                             }
                         }
                         
@@ -153,12 +171,20 @@ impl AudioMixer {
                             let (l2, r2) = if idx_i + channels < instance.stream_buffer.len() {
                                 get_sample(&instance.stream_buffer, idx_i + channels, channels)
                             } else {
-                                (l1, r1)
+                                (l1, r1) // In future, peek into next chunk. For now, flat end.
                             };
                             
                             val_l = l1 + frac * (l2 - l1);
                             val_r = r1 + frac * (r2 - r1);
                             has_sample = true;
+                        } else {
+                            // Buffer is empty but stream is not disconnected.
+                            // We treat it as having a silent sample to keep the track alive.
+                            val_l = 0.0;
+                            val_r = 0.0;
+                            has_sample = true; 
+                            // But we shouldn't advance the cursor! So we need a way to tell the mixer not to advance.
+                            // We'll set a flag or just handle it below.
                         }
                     }
                 } else if let Some(data) = &instance.data {
@@ -175,8 +201,15 @@ impl AudioMixer {
                         val_r = r1 + frac * (r2 - r1);
                         has_sample = true;
                     } else if instance.is_loop {
-                        instance.cursor = 0;
-                        idx_i = 0;
+                        let frames_in_data = (data.samples.len() / channels) as f64;
+                        instance.cursor -= frames_in_data;
+                        if instance.cursor < 0.0 { instance.cursor = 0.0; }
+                        
+                        idx_f = instance.cursor;
+                        idx_base = idx_f as usize;
+                        frac = (idx_f - (idx_base as f64)) as f32;
+                        idx_i = idx_base * channels;
+
                         if idx_i < data.samples.len() {
                             let (l1, r1) = get_sample(&data.samples, idx_i, channels);
                             let mut next_idx = idx_i + channels;
@@ -193,30 +226,42 @@ impl AudioMixer {
                 }
 
                 if has_sample {
-                    if instance.output_stereo {
-                        let out_idx_l = frame * out_channels + instance.output_channel;
-                        if out_idx_l < output.len() {
-                            output[out_idx_l] += val_l * current_vol; 
-                        }
-                        
-                        let out_idx_r = frame * out_channels + instance.output_channel + 1;
-                        // Prevent out of bounds if output_channel was the last one
-                        if out_idx_r < output.len() && (instance.output_channel + 1 < out_channels) {
-                            output[out_idx_r] += val_r * current_vol;
-                        } else if out_idx_l < output.len() {
-                            // Mix right channel into left if right channel is out of bounds for current device
-                            output[out_idx_l] += val_r * current_vol;
-                        }
-                    } else {
-                        // Mix down to mono
-                        let mono_val = (val_l + val_r) * 0.5;
-                        let out_idx = frame * out_channels + instance.output_channel;
-                        if out_idx < output.len() {
-                            output[out_idx] += mono_val * current_vol;
+                    if instance.output_channel < out_channels {
+                        if instance.output_stereo {
+                            let out_idx_l = frame * out_channels + instance.output_channel;
+                            let mut wrote_r = false;
+                            
+                            if out_idx_l < output.len() {
+                                output[out_idx_l] += val_l * current_vol; 
+                            }
+                            
+                            if instance.output_channel + 1 < out_channels {
+                                let out_idx_r = out_idx_l + 1;
+                                if out_idx_r < output.len() {
+                                    output[out_idx_r] += val_r * current_vol;
+                                    wrote_r = true;
+                                }
+                            }
+                            
+                            if !wrote_r && out_idx_l < output.len() {
+                                // Mix right channel into left if right channel is out of bounds for current device
+                                output[out_idx_l] += val_r * current_vol;
+                            }
+                        } else {
+                            // Mix down to mono
+                            let mono_val = (val_l + val_r) * 0.5;
+                            let out_idx = frame * out_channels + instance.output_channel;
+                            if out_idx < output.len() {
+                                output[out_idx] += mono_val * current_vol;
+                            }
                         }
                     }
 
-                    instance.cursor += 1;
+                    if instance.stream_receiver.is_some() && idx_i >= instance.stream_buffer.len() {
+                        // Buffer is empty, stream is lagging. Don't advance cursor.
+                    } else {
+                        instance.cursor += step;
+                    }
                 } else {
                     instance.is_stopping = true;
                 }
@@ -241,12 +286,16 @@ impl AudioMixer {
             GLOBAL_STATE.vu_levels[ch].store(peak.to_bits(), Ordering::Relaxed);
         }
 
-        // Soft clipping using pseudo-tanh
+        // Soft clipping (Cubic) to prevent integer overflow and harsh distortion at DAC
         for sample in output.iter_mut() {
             let x = *sample;
-            // fast approximation of tanh to avoid expensive float math
-            let x2 = x * x;
-            *sample = x * (27.0 + x2) / (27.0 + 9.0 * x2);
+            if x <= -1.0 {
+                *sample = -1.0;
+            } else if x >= 1.0 {
+                *sample = 1.0;
+            } else {
+                *sample = 1.5 * x - 0.5 * x * x * x;
+            }
         }
 
         // Remove stopped instances by moving to GC thread (heap-free drop)

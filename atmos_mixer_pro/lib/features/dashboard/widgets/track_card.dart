@@ -1,20 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:atmos_mixer_pro/core/theme/colors.dart';
 import 'package:atmos_mixer_pro/src/rust/common/config.dart';
-import 'package:atmos_mixer_pro/src/rust/api/simple.dart' as rust_api;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:atmos_mixer_pro/core/state/global_state.dart';
-
-final deviceChannelsProvider = FutureProvider<List<String>>((ref) async {
-  final config = ref.watch(configProvider);
-  if (config?.deviceName == null) return ['Ch 1', 'Ch 2'];
-  try {
-    return await rust_api.apiGetDeviceChannelNames(deviceName: config!.deviceName!);
-  } catch (e) {
-    return ['Ch 1', 'Ch 2'];
-  }
-});
 
 class TrackCard extends ConsumerStatefulWidget {
   final TrackConfig track;
@@ -46,11 +35,18 @@ class TrackCard extends ConsumerStatefulWidget {
 
 class _TrackCardState extends ConsumerState<TrackCard> {
   late TextEditingController _nameController;
+  late FocusNode _nameFocusNode;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.track.name);
+    _nameFocusNode = FocusNode();
+    _nameFocusNode.addListener(() {
+      if (!_nameFocusNode.hasFocus && _nameController.text != widget.track.name) {
+        widget.onNameChanged?.call(_nameController.text);
+      }
+    });
   }
 
   @override
@@ -63,6 +59,7 @@ class _TrackCardState extends ConsumerState<TrackCard> {
 
   @override
   void dispose() {
+    _nameFocusNode.dispose();
     _nameController.dispose();
     super.dispose();
   }
@@ -71,6 +68,16 @@ class _TrackCardState extends ConsumerState<TrackCard> {
   Widget build(BuildContext context) {
     final engineState = ref.watch(engineStateProvider);
     final isPlaying = engineState.playingTrackIds.contains(widget.track.id);
+
+    final chIndex = widget.track.outputChannel;
+    
+    String outputName;
+    if (widget.track.outputStereo) {
+      outputName = 'Stereo ${chIndex + 1}/${chIndex + 2}';
+    } else {
+      outputName = 'Mono ${chIndex + 1}';
+    }
+
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
@@ -95,7 +102,7 @@ class _TrackCardState extends ConsumerState<TrackCard> {
                 padding: const EdgeInsets.only(right: 4.0),
                 child: IconButton(
                   icon: Icon(isPlaying ? Icons.stop : Icons.play_arrow),
-                  color: isPlaying ? const Color(0xFF8B0000) : const Color(0xFF1E6B22),
+                  color: isPlaying ? AppColors.danger : AppColors.success,
                   iconSize: 22,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -112,6 +119,7 @@ class _TrackCardState extends ConsumerState<TrackCard> {
               Expanded(
                 child: TextField(
                   controller: _nameController,
+                  focusNode: _nameFocusNode,
                   style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
                   decoration: const InputDecoration(
                     isDense: true,
@@ -123,7 +131,7 @@ class _TrackCardState extends ConsumerState<TrackCard> {
               ),
               IconButton(
                 icon: const Icon(Icons.close),
-                color: const Color(0xFFCC0000),
+                color: AppColors.danger,
                 iconSize: 18,
                 onPressed: widget.onDelete,
                 tooltip: '삭제',
@@ -169,9 +177,7 @@ class _TrackCardState extends ConsumerState<TrackCard> {
               ),
               const SizedBox(width: 8),
               Text(
-                widget.track.outputStereo 
-                    ? 'Ext. Out: ${widget.track.outputChannel}/${widget.track.outputChannel + 1}' 
-                    : 'Ext. Out: ${widget.track.outputChannel}',
+                'Ext. Out: $outputName',
                 style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
               ),
             ],

@@ -68,7 +68,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 1604151961;
+  int get rustContentHash => 1631619565;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -113,6 +113,8 @@ abstract class RustLibApi extends BaseApi {
     required String path,
     required AppConfig config,
   });
+
+  Future<void> crateApiSimpleApiSetActiveRoom({String? roomId});
 
   Future<void> crateApiSimpleApiSetMasterVolume({
     required String roomId,
@@ -527,6 +529,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<void> crateApiSimpleApiSetActiveRoom({String? roomId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_opt_String(roomId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 13,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_atmos_error,
+        ),
+        constMeta: kCrateApiSimpleApiSetActiveRoomConstMeta,
+        argValues: [roomId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSimpleApiSetActiveRoomConstMeta =>
+      const TaskConstMeta(
+        debugName: "api_set_active_room",
+        argNames: ["roomId"],
+      );
+
+  @override
   Future<void> crateApiSimpleApiSetMasterVolume({
     required String roomId,
     required double volume,
@@ -540,7 +573,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 14,
             port: port_,
           );
         },
@@ -577,7 +610,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 15,
             port: port_,
           );
         },
@@ -608,7 +641,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 16,
             port: port_,
           );
         },
@@ -639,7 +672,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 17,
             port: port_,
           );
         },
@@ -669,7 +702,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 18,
             port: port_,
           );
         },
@@ -701,7 +734,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 19,
             port: port_,
           );
         },
@@ -758,13 +791,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   AppConfig dco_decode_app_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return AppConfig(
       oscPort: dco_decode_u_16(arr[0]),
       deviceName: dco_decode_opt_String(arr[1]),
       bufferSize: dco_decode_u_32(arr[2]),
-      rooms: dco_decode_list_room_config(arr[3]),
+      themeStartOscAddress: dco_decode_String(arr[3]),
+      systemResetOscAddress: dco_decode_String(arr[4]),
+      rooms: dco_decode_list_room_config(arr[5]),
     );
   }
 
@@ -965,11 +1000,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_oscPort = sse_decode_u_16(deserializer);
     var var_deviceName = sse_decode_opt_String(deserializer);
     var var_bufferSize = sse_decode_u_32(deserializer);
+    var var_themeStartOscAddress = sse_decode_String(deserializer);
+    var var_systemResetOscAddress = sse_decode_String(deserializer);
     var var_rooms = sse_decode_list_room_config(deserializer);
     return AppConfig(
       oscPort: var_oscPort,
       deviceName: var_deviceName,
       bufferSize: var_bufferSize,
+      themeStartOscAddress: var_themeStartOscAddress,
+      systemResetOscAddress: var_systemResetOscAddress,
       rooms: var_rooms,
     );
   }
@@ -1247,6 +1286,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_16(self.oscPort, serializer);
     sse_encode_opt_String(self.deviceName, serializer);
     sse_encode_u_32(self.bufferSize, serializer);
+    sse_encode_String(self.themeStartOscAddress, serializer);
+    sse_encode_String(self.systemResetOscAddress, serializer);
     sse_encode_list_room_config(self.rooms, serializer);
   }
 

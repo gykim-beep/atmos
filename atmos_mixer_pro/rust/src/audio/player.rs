@@ -90,6 +90,7 @@ impl SoundData {
 }
 
 pub struct SoundInstance {
+    pub instance_id: u64,
     pub id: u32,
     pub room_id: u32,
     pub track_id_str: String,
@@ -97,7 +98,8 @@ pub struct SoundInstance {
     pub stream_receiver: Option<crossbeam_channel::Receiver<Vec<f32>>>,
     pub stream_buffer: Vec<f32>,
     pub stream_sample_rate: u32,
-    pub cursor: usize,
+    pub stream_channels: u16,
+    pub cursor: f64,
     pub volume: f32,
     pub is_loop: bool,
     pub is_playing: bool,
@@ -110,17 +112,21 @@ pub struct SoundInstance {
 impl SoundInstance {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
+        instance_id: u64,
         id: u32, 
         room_id: u32, 
         track_id_str: String,
         data: Option<Arc<SoundData>>, 
         stream_receiver: Option<crossbeam_channel::Receiver<Vec<f32>>>,
         stream_sample_rate: u32,
+        stream_channels: u16,
         is_loop: bool, 
+        volume: f32,
         output_channel: usize,
         output_stereo: bool
     ) -> Self {
         Self {
+            instance_id,
             id,
             room_id,
             track_id_str,
@@ -128,8 +134,9 @@ impl SoundInstance {
             stream_receiver,
             stream_buffer: Vec::new(),
             stream_sample_rate,
-            cursor: 0,
-            volume: 1.0,
+            stream_channels,
+            cursor: 0.0,
+            volume,
             is_loop,
             is_playing: true,
             is_stopping: false,

@@ -7,6 +7,11 @@ pub struct AppConfig {
     pub osc_port: u16,
     pub device_name: Option<String>,
     pub buffer_size: u32,
+    #[serde(default)]
+    pub theme_start_osc_address: String,
+    #[serde(default)]
+    pub system_reset_osc_address: String,
+    #[serde(default)]
     pub rooms: Vec<RoomConfig>,
 }
 
@@ -16,6 +21,8 @@ impl Default for AppConfig {
             osc_port: 8000,
             device_name: None,
             buffer_size: 256,
+            theme_start_osc_address: String::new(),
+            system_reset_osc_address: String::new(),
             rooms: Vec::new(),
         }
     }
@@ -27,7 +34,9 @@ pub struct RoomConfig {
     pub name: String,
     pub color_hex: String,
     pub volume: f32, // 0.0 to 1.0
+    #[serde(default)]
     pub clear_osc_address: String,
+    #[serde(default)]
     pub tracks: Vec<TrackConfig>,
 }
 
@@ -43,7 +52,9 @@ pub struct TrackConfig {
     pub output_channel: u32, // 1 to 24 (1-indexed for user, mapped to 0-23 internally)
     #[serde(default = "default_true")]
     pub output_stereo: bool,
+    #[serde(default)]
     pub play_osc_address: String,
+    #[serde(default)]
     pub stop_osc_address: String,
 }
 
@@ -57,8 +68,14 @@ impl AppConfig {
             return Ok(default_config);
         }
         let content = fs::read_to_string(path)?;
-        let config: AppConfig = serde_json::from_str(&content)?;
-        Ok(config)
+        match serde_json::from_str(&content) {
+            Ok(config) => Ok(config),
+            Err(e) => {
+                let backup_path = path.with_extension("corrupted.json");
+                let _ = fs::copy(path, backup_path);
+                Err(e.into())
+            }
+        }
     }
 
     pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> anyhow::Result<()> {

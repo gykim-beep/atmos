@@ -3,6 +3,7 @@ import 'package:atmos_mixer_pro/src/rust/api/simple.dart' as rust_api;
 import 'package:atmos_mixer_pro/src/rust/common/config.dart';
 
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 Future<String> _getConfigPath() async {
   final dir = await getApplicationSupportDirectory();
@@ -53,125 +54,15 @@ class ConfigNotifier extends Notifier<AppConfig?> {
 
 final configProvider = NotifierProvider<ConfigNotifier, AppConfig?>(ConfigNotifier.new);
 
-class ChannelPairConfig {
-  final int pairIndex; // 0-based. pair 0 is ch 1 & 2.
-  final String name1;
-  final String name2;
-  final bool isStereo;
-  final bool active1; // ch1 active (if mono) or stereo active
-  final bool active2; // ch2 active (if mono)
-
-  ChannelPairConfig({
-    required this.pairIndex,
-    required this.name1,
-    required this.name2,
-    this.isStereo = true,
-    this.active1 = false,
-    this.active2 = false,
-  });
-
-  ChannelPairConfig copyWith({bool? isStereo, bool? active1, bool? active2}) {
-    return ChannelPairConfig(
-      pairIndex: pairIndex,
-      name1: name1,
-      name2: name2,
-      isStereo: isStereo ?? this.isStereo,
-      active1: active1 ?? this.active1,
-      active2: active2 ?? this.active2,
-    );
+final hardwareChannelsProvider = FutureProvider<List<String>>((ref) async {
+  final config = ref.watch(configProvider);
+  if (config == null || config.deviceName == null || config.deviceName!.isEmpty) return [];
+  try {
+    return await rust_api.apiGetDeviceChannelNames(deviceName: config.deviceName!);
+  } catch (e) {
+    return [];
   }
-}
-
-class RoutingMatrixNotifier extends Notifier<List<ChannelPairConfig>> {
-  @override
-  List<ChannelPairConfig> build() {
-    // Default 1 pair (2 channels) until initialized
-    return List.generate(1, (i) => ChannelPairConfig(
-      pairIndex: i, 
-      name1: 'Ch 1',
-      name2: 'Ch 2',
-      isStereo: true, 
-      active1: true, 
-      active2: true
-    ));
-  }
-
-  void initMatrix(List<String> channelNames) {
-    if (channelNames.isEmpty) return;
-    int pairs = (channelNames.length / 2).ceil();
-    state = List.generate(pairs, (i) {
-      String n1 = i * 2 < channelNames.length ? channelNames[i * 2] : 'Ch ${i * 2 + 1}';
-      String n2 = i * 2 + 1 < channelNames.length ? channelNames[i * 2 + 1] : 'Ch ${i * 2 + 2}';
-      
-      // Preserve existing active states if possible
-      if (i < state.length) {
-        return ChannelPairConfig(
-          pairIndex: i,
-          name1: n1,
-          name2: n2,
-          isStereo: state[i].isStereo,
-          active1: state[i].active1,
-          active2: state[i].active2,
-        );
-      }
-      // Default new channels to off
-      return ChannelPairConfig(
-        pairIndex: i, 
-        name1: n1,
-        name2: n2,
-        isStereo: true, 
-        active1: false, 
-        active2: false
-      );
-    });
-  }
-
-  void toggleStereoLink(int pairIndex) {
-    final newState = [...state];
-    final current = newState[pairIndex];
-    newState[pairIndex] = current.copyWith(
-      isStereo: !current.isStereo,
-      // If switching to stereo, align active2 with active1
-      active2: !current.isStereo ? current.active1 : current.active2
-    );
-    state = newState;
-  }
-
-  void toggleActive(int pairIndex, {bool isCh2 = false}) {
-    final newState = [...state];
-    final current = newState[pairIndex];
-    if (current.isStereo) {
-      // Toggle both
-      newState[pairIndex] = current.copyWith(
-        active1: !current.active1,
-        active2: !current.active1
-      );
-    } else {
-      if (isCh2) {
-        newState[pairIndex] = current.copyWith(active2: !current.active2);
-      } else {
-        newState[pairIndex] = current.copyWith(active1: !current.active1);
-      }
-    }
-    state = newState;
-  }
-  
-  List<String> get activeChannelLabels {
-    final labels = <String>[];
-    for (var p in state) {
-      if (p.isStereo && p.active1) {
-        labels.add('${p.name1}/${p.name2}');
-      } else if (!p.isStereo) {
-        if (p.active1) labels.add(p.name1);
-        if (p.active2) labels.add(p.name2);
-      }
-    }
-    return labels;
-  }
-}
-
-final routingMatrixProvider = NotifierProvider<RoutingMatrixNotifier, List<ChannelPairConfig>>(RoutingMatrixNotifier.new);
-
+});
 
 class LogNotifier extends Notifier<List<String>> {
   @override
@@ -215,13 +106,14 @@ class EngineState {
 
   EngineState copyWith({
     String? activeRoomId,
+    bool forceNullActiveRoom = false,
     Set<String>? clearedRoomIds,
     bool? duckingActive,
     bool? themeStarted,
     List<String>? playingTrackIds,
   }) {
     return EngineState(
-      activeRoomId: activeRoomId ?? this.activeRoomId,
+      activeRoomId: forceNullActiveRoom ? null : (activeRoomId ?? this.activeRoomId),
       clearedRoomIds: clearedRoomIds ?? this.clearedRoomIds,
       duckingActive: duckingActive ?? this.duckingActive,
       themeStarted: themeStarted ?? this.themeStarted,
@@ -237,6 +129,7 @@ class EngineStateNotifier extends Notifier<EngineState> {
     rust_api.apiCreateEngineStateStream().listen((update) {
       state = state.copyWith(
         activeRoomId: update.activeRoomId,
+        forceNullActiveRoom: update.activeRoomId == null,
         duckingActive: update.duckingActive,
         playingTrackIds: update.playingTrackIds,
       );
@@ -245,18 +138,20 @@ class EngineStateNotifier extends Notifier<EngineState> {
     return EngineState();
   }
 
-  void setActiveRoom(String roomId) {
-    state = state.copyWith(activeRoomId: roomId);
+  Future<void> setActiveRoom(String roomId) async {
+    try {
+      await rust_api.apiSetActiveRoom(roomId: roomId);
+    } catch (e) {
+      // Ignored or handled elsewhere
+    }
   }
 
-  void clearActiveRoom() {
-    state = EngineState(
-      activeRoomId: null,
-      clearedRoomIds: state.clearedRoomIds,
-      duckingActive: state.duckingActive,
-      themeStarted: state.themeStarted,
-      playingTrackIds: state.playingTrackIds,
-    );
+  Future<void> clearActiveRoom() async {
+    try {
+      await rust_api.apiSetActiveRoom(roomId: null);
+    } catch (e) {
+      // ignored
+    }
   }
 
   void clearRoom(String roomId) {
@@ -264,12 +159,17 @@ class EngineStateNotifier extends Notifier<EngineState> {
     state = state.copyWith(clearedRoomIds: newCleared);
   }
   
-  void startTheme(String firstRoomId) {
-    state = EngineState(themeStarted: true, activeRoomId: firstRoomId, clearedRoomIds: {});
+  Future<void> startTheme(String firstRoomId) async {
+    state = state.copyWith(themeStarted: true, clearedRoomIds: {});
+    try {
+      await rust_api.apiSetActiveRoom(roomId: firstRoomId);
+    } catch (e) {
+      // ignored
+    }
   }
 
   void reset() {
-    state = EngineState();
+    state = state.copyWith(themeStarted: false, clearedRoomIds: {});
   }
 }
 
@@ -289,3 +189,51 @@ class GlobalErrorNotifier extends Notifier<String?> {
 }
 
 final globalErrorProvider = NotifierProvider<GlobalErrorNotifier, String?>(GlobalErrorNotifier.new);
+
+class OutputConfigState {
+  final Set<int> monoChannels;
+  final Set<int> stereoChannels; // Storing the first channel index of the pair
+
+  OutputConfigState({
+    this.monoChannels = const {},
+    this.stereoChannels = const {},
+  });
+
+  OutputConfigState copyWith({
+    Set<int>? monoChannels,
+    Set<int>? stereoChannels,
+  }) {
+    return OutputConfigState(
+      monoChannels: monoChannels ?? this.monoChannels,
+      stereoChannels: stereoChannels ?? this.stereoChannels,
+    );
+  }
+}
+
+class OutputConfigNotifier extends Notifier<OutputConfigState> {
+  @override
+  OutputConfigState build() {
+    _load();
+    return OutputConfigState();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final monoList = prefs.getStringList('output_config_mono') ?? [];
+    final stereoList = prefs.getStringList('output_config_stereo') ?? [];
+    
+    state = OutputConfigState(
+      monoChannels: monoList.map(int.parse).toSet(),
+      stereoChannels: stereoList.map(int.parse).toSet(),
+    );
+  }
+
+  Future<void> save(Set<int> mono, Set<int> stereo) async {
+    state = OutputConfigState(monoChannels: mono, stereoChannels: stereo);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('output_config_mono', mono.map((e) => e.toString()).toList());
+    await prefs.setStringList('output_config_stereo', stereo.map((e) => e.toString()).toList());
+  }
+}
+
+final outputConfigProvider = NotifierProvider<OutputConfigNotifier, OutputConfigState>(OutputConfigNotifier.new);

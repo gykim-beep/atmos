@@ -11,6 +11,7 @@ class AppColors {
   static const Color success = Color(0xFF2E7D32);
   static const Color primaryBlue = Color(0xFF1565C0);
   static const Color primaryBlueHover = Color(0xFF0D3E8A);
+  static const Color accentOrange = Color(0xFFFF9800);
   static const Color darkGrey = Color(0xFF37474F);
   static const Color lightGrey = Color(0xFF455A64);
   static const Color purple = Color(0xFF6A1B9A);

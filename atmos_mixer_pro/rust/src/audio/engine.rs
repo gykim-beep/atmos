@@ -42,7 +42,7 @@ impl AudioEngine {
         std::thread::spawn(move || {
             while let Ok(dropped) = gc_rx.recv() {
                 // Instance is dropped here in a background thread, preventing GC in audio thread.
-                crate::core::state::GLOBAL_STATE.remove_playing_track(&dropped.track_id_str);
+                crate::core::state::GLOBAL_STATE.remove_playing_track(dropped.instance_id);
             }
         });
 
@@ -73,18 +73,22 @@ impl AudioEngine {
         // Lock-free pop from command queue
         while let Ok(cmd) = rx.try_recv() {
             match cmd {
-                AudioCommand::PlayTrack { room_id, track_id, track_id_str, data, stream_receiver, stream_sample_rate, is_loop, volume: _, output_channel, output_stereo } => {
-                    let instance = crate::audio::player::SoundInstance::new(
+                AudioCommand::PlayTrack { instance_id, room_id, track_id, track_id_str, data, stream_receiver, stream_sample_rate, stream_channels, is_loop, volume, output_channel, output_stereo } => {
+                    let mut instance = crate::audio::player::SoundInstance::new(
+                        instance_id,
                         track_id,
                         room_id,
                         track_id_str,
                         data,
                         stream_receiver,
                         stream_sample_rate,
+                        stream_channels,
                         is_loop,
+                        volume,
                         output_channel,
                         output_stereo,
                     );
+                    instance.volume = volume;
                     if let Some(slot) = mixer.instances.iter_mut().find(|s| s.is_none()) {
                         if let Some(old) = slot.replace(instance) {
                             let _ = mixer.gc_sender.try_send(old);
@@ -109,6 +113,13 @@ impl AudioEngine {
                     for inst in mixer.instances.iter_mut().flatten() {
                         if inst.room_id == room_id {
                             inst.is_stopping = true;
+                        }
+                    }
+                }
+                AudioCommand::SetTrackVolume { room_id, track_id, volume } => {
+                    for inst in mixer.instances.iter_mut().flatten() {
+                        if inst.room_id == room_id && inst.id == track_id {
+                            inst.volume = volume;
                         }
                     }
                 }

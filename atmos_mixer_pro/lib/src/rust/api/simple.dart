@@ -33,6 +33,9 @@ Future<void> apiStopTrack({required String roomId, required String trackId}) =>
 
 Future<void> apiStopAll() => RustLib.instance.api.crateApiSimpleApiStopAll();
 
+Future<void> apiSetActiveRoom({String? roomId}) =>
+    RustLib.instance.api.crateApiSimpleApiSetActiveRoom(roomId: roomId);
+
 Future<void> apiClearRoom({required String roomId}) =>
     RustLib.instance.api.crateApiSimpleApiClearRoom(roomId: roomId);
 

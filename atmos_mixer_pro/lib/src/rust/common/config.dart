@@ -10,12 +10,16 @@ class AppConfig {
   final int oscPort;
   final String? deviceName;
   final int bufferSize;
+  final String themeStartOscAddress;
+  final String systemResetOscAddress;
   final List<RoomConfig> rooms;
 
   const AppConfig({
     required this.oscPort,
     this.deviceName,
     required this.bufferSize,
+    required this.themeStartOscAddress,
+    required this.systemResetOscAddress,
     required this.rooms,
   });
 
@@ -24,6 +28,8 @@ class AppConfig {
       oscPort.hashCode ^
       deviceName.hashCode ^
       bufferSize.hashCode ^
+      themeStartOscAddress.hashCode ^
+      systemResetOscAddress.hashCode ^
       rooms.hashCode;
 
   @override
@@ -34,6 +40,8 @@ class AppConfig {
           oscPort == other.oscPort &&
           deviceName == other.deviceName &&
           bufferSize == other.bufferSize &&
+          themeStartOscAddress == other.themeStartOscAddress &&
+          systemResetOscAddress == other.systemResetOscAddress &&
           rooms == other.rooms;
 }
 

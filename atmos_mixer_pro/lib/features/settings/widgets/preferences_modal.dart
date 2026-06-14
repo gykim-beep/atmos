@@ -14,6 +14,7 @@ class PreferencesModal extends ConsumerStatefulWidget {
 class _PreferencesModalState extends ConsumerState<PreferencesModal> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late AppConfig _tempConfig;
+  List<rust_api.OutputDeviceInfo> _deviceInfos = [];
   List<String> _devices = [];
   List<String> _channelNames = [];
 
@@ -26,6 +27,8 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
     _tempConfig = currentConfig != null ? cloneConfig(currentConfig) : AppConfig(
       oscPort: 8000,
       bufferSize: 256,
+      themeStartOscAddress: '/theme/start',
+      systemResetOscAddress: '/system/reset',
       rooms: [],
     );
     _loadDevices();
@@ -36,6 +39,7 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
       final deviceInfos = await rust_api.apiGetOutputDevices();
       final devices = deviceInfos.map((d) => d.name).toList();
       setState(() {
+        _deviceInfos = deviceInfos;
         _devices = devices;
       });
       _loadDeviceChannels(_tempConfig.deviceName);
@@ -46,24 +50,23 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
     }
   }
 
-  Future<void> _loadDeviceChannels(String? deviceName) async {
+  void _loadDeviceChannels(String? deviceName) {
     if (deviceName == null) {
       setState(() {
-        _channelNames = ['Ch 1', 'Ch 2'];
+        _channelNames = [];
       });
-      ref.read(routingMatrixProvider.notifier).initMatrix(_channelNames);
       return;
     }
     try {
-      final channelNames = await rust_api.apiGetDeviceChannelNames(deviceName: deviceName);
+      final info = _deviceInfos.firstWhere((d) => d.name == deviceName);
       setState(() {
-        _channelNames = channelNames;
+        _channelNames = info.channelNames;
       });
-      ref.read(routingMatrixProvider.notifier).initMatrix(_channelNames);
     } catch (e) {
-      if (mounted) {
-        ref.read(globalErrorProvider.notifier).showError('채널 탐색 실패: $e');
-      }
+      // Device not found in the cached list (e.g. disconnected)
+      setState(() {
+        _channelNames = [];
+      });
     }
   }
 
@@ -73,6 +76,8 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
       oscPort: config.oscPort,
       deviceName: config.deviceName,
       bufferSize: config.bufferSize,
+      themeStartOscAddress: config.themeStartOscAddress,
+      systemResetOscAddress: config.systemResetOscAddress,
       rooms: config.rooms.map((r) => RoomConfig(
         id: r.id,
         name: r.name,
@@ -101,12 +106,73 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
   }
 
   void _saveAndClose() {
-    ref.read(configProvider.notifier).saveConfig(_tempConfig);
+    final newRooms = _tempConfig.rooms.map((room) {
+      final newTracks = room.tracks.map((track) {
+        return TrackConfig(
+          id: track.id,
+          name: track.name,
+          filePath: track.filePath,
+          volume: track.volume,
+          isLoop: track.isLoop,
+          outputChannel: track.outputChannel,
+          outputStereo: track.outputStereo,
+          playOscAddress: track.playOscAddress,
+          stopOscAddress: track.stopOscAddress,
+        );
+      }).toList();
+      return RoomConfig(
+        id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks,
+      );
+    }).toList();
+    
+    final finalConfig = AppConfig(oscPort: _tempConfig.oscPort, deviceName: _tempConfig.deviceName, bufferSize: _tempConfig.bufferSize, themeStartOscAddress: _tempConfig.themeStartOscAddress, systemResetOscAddress: _tempConfig.systemResetOscAddress, rooms: newRooms);
+    ref.read(configProvider.notifier).saveConfig(finalConfig);
     Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AppConfig?>(configProvider, (previous, next) {
+      if (next != null) {
+        setState(() {
+          final updatedRooms = _tempConfig.rooms.map((tempRoom) {
+            final nextRoom = next.rooms.firstWhere((r) => r.id == tempRoom.id, orElse: () => tempRoom);
+            final updatedTracks = tempRoom.tracks.map((tempTrack) {
+              final nextTrack = nextRoom.tracks.firstWhere((t) => t.id == tempTrack.id, orElse: () => tempTrack);
+              return TrackConfig(
+                id: tempTrack.id,
+                name: nextTrack.name, // Sync name
+                filePath: tempTrack.filePath,
+                volume: tempTrack.volume,
+                isLoop: tempTrack.isLoop,
+                outputChannel: tempTrack.outputChannel,
+                outputStereo: tempTrack.outputStereo,
+                playOscAddress: tempTrack.playOscAddress,
+                stopOscAddress: tempTrack.stopOscAddress,
+              );
+            }).toList();
+            return RoomConfig(
+              id: tempRoom.id,
+              name: nextRoom.name, // Sync name
+              colorHex: tempRoom.colorHex,
+              volume: tempRoom.volume,
+              clearOscAddress: tempRoom.clearOscAddress,
+              tracks: updatedTracks,
+            );
+          }).toList();
+
+          _tempConfig = AppConfig(
+            oscPort: _tempConfig.oscPort,
+            deviceName: _tempConfig.deviceName,
+            bufferSize: _tempConfig.bufferSize,
+            themeStartOscAddress: _tempConfig.themeStartOscAddress,
+            systemResetOscAddress: _tempConfig.systemResetOscAddress,
+            rooms: updatedRooms,
+          );
+        });
+      }
+    });
+
     return Dialog(
       backgroundColor: AppColors.background,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -185,9 +251,40 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
   }
 
   Widget _buildAudioTab() {
-    final List<DropdownMenuItem<int>> channelItems = [];
-    for (int i = 0; i < _channelNames.length; i++) {
-      channelItems.add(DropdownMenuItem(value: i + 1, child: Text('${i + 1}: ${_channelNames[i]}', overflow: TextOverflow.ellipsis)));
+    final outputConfig = ref.watch(outputConfigProvider);
+    final List<DropdownMenuItem<String>> channelItems = [];
+
+    final sortedMono = outputConfig.monoChannels.toList()..sort();
+    for (final ch in sortedMono) {
+      if (ch < _channelNames.length) {
+        channelItems.add(
+          DropdownMenuItem<String>(
+            value: '${ch}_mono',
+            child: Text('${ch + 1}'),
+          )
+        );
+      }
+    }
+
+    final sortedStereo = outputConfig.stereoChannels.toList()..sort();
+    for (final ch in sortedStereo) {
+      if (ch + 1 < _channelNames.length) {
+        channelItems.add(
+          DropdownMenuItem<String>(
+            value: '${ch}_stereo',
+            child: Text('${ch + 1}/${ch + 2}'),
+          )
+        );
+      }
+    }
+
+    String getDropdownValue(int channelIndex, bool isStereo) {
+      if (isStereo) {
+        if (outputConfig.stereoChannels.contains(channelIndex)) return '${channelIndex}_stereo';
+      } else {
+        if (outputConfig.monoChannels.contains(channelIndex)) return '${channelIndex}_mono';
+      }
+      return isStereo ? '${channelIndex}_stereo' : '${channelIndex}_mono';
     }
 
     return ListView(
@@ -212,13 +309,15 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
                     DropdownMenuItem(value: _tempConfig.deviceName, child: Text('${_tempConfig.deviceName} (Disconnected)')),
                 ],
                 onChanged: (val) {
-                  setState(() { 
-                    _tempConfig = AppConfig(
-                      oscPort: _tempConfig.oscPort,
-                      deviceName: val,
-                      bufferSize: _tempConfig.bufferSize,
-                      rooms: _tempConfig.rooms,
-                    ); 
+                  setState(() {                      
+                      _tempConfig = AppConfig(
+                        oscPort: _tempConfig.oscPort,
+                        deviceName: val,
+                        bufferSize: _tempConfig.bufferSize,
+                        themeStartOscAddress: _tempConfig.themeStartOscAddress,
+                        systemResetOscAddress: _tempConfig.systemResetOscAddress,
+                        rooms: _tempConfig.rooms,
+                      ); 
                   });
                   _loadDeviceChannels(val);
                 },
@@ -235,13 +334,15 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
                 items: [64, 128, 256, 512, 1024].map((e) => DropdownMenuItem(value: e, child: Text('$e samples'))).toList(),
                 onChanged: (val) {
                   if (val != null) {
-                    setState(() { 
-                      _tempConfig = AppConfig(
-                        oscPort: _tempConfig.oscPort,
-                        deviceName: _tempConfig.deviceName,
-                        bufferSize: val,
-                        rooms: _tempConfig.rooms,
-                      ); 
+                    setState(() {                        
+                        _tempConfig = AppConfig(
+                          oscPort: _tempConfig.oscPort,
+                          deviceName: _tempConfig.deviceName,
+                          bufferSize: val,
+                          themeStartOscAddress: _tempConfig.themeStartOscAddress,
+                          systemResetOscAddress: _tempConfig.systemResetOscAddress,
+                          rooms: _tempConfig.rooms,
+                        ); 
                     });
                   }
                 },
@@ -256,74 +357,28 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(color: AppColors.cardSurface, borderRadius: BorderRadius.circular(8)),
           child: Column(
-            children: ref.watch(routingMatrixProvider).map((pair) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Row(
-                  children: [
-                    // Mono 1
-                    Expanded(
-                      child: InkWell(
-                        onTap: pair.isStereo ? null : () => ref.read(routingMatrixProvider.notifier).toggleActive(pair.pairIndex, isCh2: false),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                          decoration: BoxDecoration(
-                            color: pair.isStereo ? AppColors.darkGrey.withValues(alpha: 0.3) : (pair.active1 ? AppColors.primaryNeon.withValues(alpha: 0.3) : AppColors.background),
-                            border: Border.all(color: pair.active1 && !pair.isStereo ? AppColors.primaryNeon : AppColors.darkGrey),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text('Mono: ${pair.name1}', textAlign: TextAlign.center, style: TextStyle(color: pair.isStereo ? Colors.white30 : Colors.white)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Mono 2
-                    Expanded(
-                      child: InkWell(
-                        onTap: pair.isStereo ? null : () => ref.read(routingMatrixProvider.notifier).toggleActive(pair.pairIndex, isCh2: true),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                          decoration: BoxDecoration(
-                            color: pair.isStereo ? AppColors.darkGrey.withValues(alpha: 0.3) : (pair.active2 ? AppColors.primaryNeon.withValues(alpha: 0.3) : AppColors.background),
-                            border: Border.all(color: pair.active2 && !pair.isStereo ? AppColors.primaryNeon : AppColors.darkGrey),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text('Mono: ${pair.name2}', textAlign: TextAlign.center, style: TextStyle(color: pair.isStereo ? Colors.white30 : Colors.white)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Link button
-                    IconButton(
-                      icon: Icon(pair.isStereo ? Icons.link : Icons.link_off),
-                      color: pair.isStereo ? AppColors.primaryBlue : Colors.white54,
-                      onPressed: () => ref.read(routingMatrixProvider.notifier).toggleStereoLink(pair.pairIndex),
-                    ),
-                    const SizedBox(width: 8),
-                    // Stereo
-                    Expanded(
-                      flex: 2,
-                      child: InkWell(
-                        onTap: !pair.isStereo ? null : () => ref.read(routingMatrixProvider.notifier).toggleActive(pair.pairIndex),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                          decoration: BoxDecoration(
-                            color: !pair.isStereo ? AppColors.darkGrey.withValues(alpha: 0.3) : (pair.active1 ? AppColors.primaryBlue.withValues(alpha: 0.3) : AppColors.background),
-                            border: Border.all(color: pair.active1 && pair.isStereo ? AppColors.primaryBlue : AppColors.darkGrey),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text('Stereo: ${pair.name1}/${pair.name2}', textAlign: TextAlign.center, style: TextStyle(color: !pair.isStereo ? Colors.white30 : Colors.white)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '현재 선택된 오디오 인터페이스의 아웃풋 채널은 총 ${_channelNames.length}개 입니다.',
+                style: const TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => OutputConfigDialog(channelCount: _channelNames.length),
+                  );
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue),
+                child: const Text('Output Config', style: TextStyle(color: Colors.white)),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 24),
-        const Text('1:1 스피커 매핑 (Track Routing)', style: TextStyle(color: AppColors.primaryNeon, fontWeight: FontWeight.bold)),
+        const Text('트랙별 출력 채널 매핑 (Track Routing)', style: TextStyle(color: AppColors.primaryNeon, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         ..._tempConfig.rooms.asMap().entries.map((rEntry) {
           final rIndex = rEntry.key;
@@ -347,19 +402,21 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
                       const SizedBox(width: 8),
                       Expanded(
                         flex: 1,
-                        child: DropdownButtonFormField<int>(
-                          initialValue: channelItems.any((item) => item.value == track.outputChannel) ? track.outputChannel : null,
+                        child: DropdownButtonFormField<String>(
+                          initialValue: getDropdownValue(track.outputChannel, track.outputStereo),
                           dropdownColor: AppColors.cardSurfaceSolid,
                           isExpanded: true,
                           decoration: const InputDecoration(isDense: true, filled: true, fillColor: AppColors.cardSurface, border: OutlineInputBorder()),
                           style: const TextStyle(color: Colors.white, fontSize: 12),
                           items: [
                             ...channelItems,
-                            if (!channelItems.any((item) => item.value == track.outputChannel))
-                              DropdownMenuItem(value: track.outputChannel, child: Text('${track.outputChannel} (Missing)', overflow: TextOverflow.ellipsis))
+                            if (!channelItems.any((item) => item.value == getDropdownValue(track.outputChannel, track.outputStereo)))
+                              DropdownMenuItem(value: getDropdownValue(track.outputChannel, track.outputStereo), child: Text('${track.outputChannel + 1} (Missing)', overflow: TextOverflow.ellipsis))
                           ],
                           onChanged: (val) {
                             if (val != null) {
+                              final isStereo = val.endsWith('_stereo');
+                              final parsedChannel = int.parse(val.split('_').first);
                               final newRooms = List<RoomConfig>.from(_tempConfig.rooms);
                               final newTracks = List<TrackConfig>.from(newRooms[rIndex].tracks);
                               newTracks[tIndex] = TrackConfig(
@@ -368,8 +425,8 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
                                 filePath: track.filePath,
                                 volume: track.volume,
                                 isLoop: track.isLoop,
-                                outputChannel: val,
-                                outputStereo: track.outputStereo,
+                                outputChannel: parsedChannel,
+                                outputStereo: isStereo,
                                 playOscAddress: track.playOscAddress,
                                 stopOscAddress: track.stopOscAddress,
                               );
@@ -377,7 +434,7 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
                                 id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks,
                               );
                               setState(() {
-                                _tempConfig = AppConfig(oscPort: _tempConfig.oscPort, deviceName: _tempConfig.deviceName, bufferSize: _tempConfig.bufferSize, rooms: newRooms);
+                                _tempConfig = AppConfig(oscPort: _tempConfig.oscPort, deviceName: _tempConfig.deviceName, bufferSize: _tempConfig.bufferSize, themeStartOscAddress: _tempConfig.themeStartOscAddress, systemResetOscAddress: _tempConfig.systemResetOscAddress, rooms: newRooms);
                               });
                             }
                           },
@@ -400,6 +457,64 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
       children: [
         const Text('룸 클리어 및 트랙 트리거 주소 매핑', style: TextStyle(color: AppColors.primaryNeon, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
+        Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: AppColors.cardSurface, borderRadius: BorderRadius.circular(8)),
+          child: Row(
+            children: [
+              const SizedBox(width: 80, child: Text('테마 시작', style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold))),
+              Expanded(
+                child: TextFormField(
+                  initialValue: _tempConfig.themeStartOscAddress,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(isDense: true, hintText: '예: /theme/start (전체 리셋 및 1번 룸 시작)'),
+                  onChanged: (val) {
+                    setState(() {
+                      _tempConfig = AppConfig(
+                        oscPort: _tempConfig.oscPort,
+                        deviceName: _tempConfig.deviceName,
+                        bufferSize: _tempConfig.bufferSize,
+                        themeStartOscAddress: val,
+                        systemResetOscAddress: _tempConfig.systemResetOscAddress,
+                        rooms: _tempConfig.rooms,
+                      );
+                    });
+                  },
+                ),
+              )
+            ],
+          ),
+        ),
+        Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: AppColors.cardSurface, borderRadius: BorderRadius.circular(8)),
+          child: Row(
+            children: [
+              const SizedBox(width: 80, child: Text('시스템 리셋', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold))),
+              Expanded(
+                child: TextFormField(
+                  initialValue: _tempConfig.systemResetOscAddress,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(isDense: true, hintText: '예: /system/reset (재생 정지 및 초기화)'),
+                  onChanged: (val) {
+                    setState(() {
+                      _tempConfig = AppConfig(
+                        oscPort: _tempConfig.oscPort,
+                        deviceName: _tempConfig.deviceName,
+                        bufferSize: _tempConfig.bufferSize,
+                        themeStartOscAddress: _tempConfig.themeStartOscAddress,
+                        systemResetOscAddress: val,
+                        rooms: _tempConfig.rooms,
+                      );
+                    });
+                  },
+                ),
+              )
+            ],
+          ),
+        ),
         ..._tempConfig.rooms.asMap().entries.map((rEntry) {
           final rIndex = rEntry.key;
           final room = rEntry.value;
@@ -426,7 +541,7 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
                             id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: val, tracks: room.tracks,
                           );
                           setState(() {
-                            _tempConfig = AppConfig(oscPort: _tempConfig.oscPort, deviceName: _tempConfig.deviceName, bufferSize: _tempConfig.bufferSize, rooms: newRooms);
+                            _tempConfig = AppConfig(oscPort: _tempConfig.oscPort, deviceName: _tempConfig.deviceName, bufferSize: _tempConfig.bufferSize, themeStartOscAddress: _tempConfig.themeStartOscAddress, systemResetOscAddress: _tempConfig.systemResetOscAddress, rooms: newRooms);
                           });
                         },
                       ),
@@ -466,7 +581,7 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
                                 id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks,
                               );
                               setState(() {
-                                _tempConfig = AppConfig(oscPort: _tempConfig.oscPort, deviceName: _tempConfig.deviceName, bufferSize: _tempConfig.bufferSize, rooms: newRooms);
+                                _tempConfig = AppConfig(oscPort: _tempConfig.oscPort, deviceName: _tempConfig.deviceName, bufferSize: _tempConfig.bufferSize, themeStartOscAddress: _tempConfig.themeStartOscAddress, systemResetOscAddress: _tempConfig.systemResetOscAddress, rooms: newRooms);
                               });
                             },
                           ),
@@ -488,7 +603,7 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
                                 id: room.id, name: room.name, colorHex: room.colorHex, volume: room.volume, clearOscAddress: room.clearOscAddress, tracks: newTracks,
                               );
                               setState(() {
-                                _tempConfig = AppConfig(oscPort: _tempConfig.oscPort, deviceName: _tempConfig.deviceName, bufferSize: _tempConfig.bufferSize, rooms: newRooms);
+                                _tempConfig = AppConfig(oscPort: _tempConfig.oscPort, deviceName: _tempConfig.deviceName, bufferSize: _tempConfig.bufferSize, themeStartOscAddress: _tempConfig.themeStartOscAddress, systemResetOscAddress: _tempConfig.systemResetOscAddress, rooms: newRooms);
                               });
                             },
                           ),
@@ -521,9 +636,11 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
                   if (p != null) {
                     setState(() { 
                       _tempConfig = AppConfig(
-                        oscPort: p,
+                        oscPort: int.tryParse(val) ?? _tempConfig.oscPort,
                         deviceName: _tempConfig.deviceName,
                         bufferSize: _tempConfig.bufferSize,
+                        themeStartOscAddress: _tempConfig.themeStartOscAddress,
+                        systemResetOscAddress: _tempConfig.systemResetOscAddress,
                         rooms: _tempConfig.rooms,
                       ); 
                     });
@@ -538,4 +655,153 @@ class _PreferencesModalState extends ConsumerState<PreferencesModal> with Single
   }
 
 
+}
+
+class OutputConfigDialog extends ConsumerStatefulWidget {
+  final int channelCount;
+  const OutputConfigDialog({super.key, required this.channelCount});
+
+  @override
+  ConsumerState<OutputConfigDialog> createState() => _OutputConfigDialogState();
+}
+
+class _OutputConfigDialogState extends ConsumerState<OutputConfigDialog> {
+  late Set<int> monoChannels;
+  late Set<int> stereoChannels;
+
+  @override
+  void initState() {
+    super.initState();
+    final state = ref.read(outputConfigProvider);
+    monoChannels = Set.from(state.monoChannels);
+    stereoChannels = Set.from(state.stereoChannels);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppColors.background,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: SizedBox(
+        width: 600,
+        height: 500,
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                color: AppColors.headerBackground,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+              ),
+              child: Row(
+                children: [
+                  const Text('Output Config', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.of(context).pop()),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Row(
+                children: [
+                  // Mono Column
+                  Expanded(
+                    child: Column(
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Text('Mono Output', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: widget.channelCount,
+                            itemBuilder: (context, index) {
+                              final ch = index;
+                              final isOn = monoChannels.contains(ch);
+                              return SwitchListTile(
+                                title: Text('${ch + 1}', style: const TextStyle(color: Colors.white)),
+                                value: isOn,
+                                activeThumbColor: AppColors.primaryBlue,
+                                onChanged: (val) {
+                                  setState(() {
+                                    if (val) {
+                                      monoChannels.add(ch);
+                                    } else {
+                                      monoChannels.remove(ch);
+                                    }
+                                  });
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const VerticalDivider(color: AppColors.darkGrey, width: 1),
+                  // Stereo Column
+                  Expanded(
+                    child: Column(
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Text('Stereo Output', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: (widget.channelCount / 2).ceil(),
+                            itemBuilder: (context, index) {
+                              final ch = index * 2;
+                              if (ch + 1 >= widget.channelCount) return const SizedBox.shrink();
+                              final isOn = stereoChannels.contains(ch);
+                              return SwitchListTile(
+                                title: Text('${ch + 1}/${ch + 2}', style: const TextStyle(color: Colors.white)),
+                                value: isOn,
+                                activeThumbColor: AppColors.primaryBlue,
+                                onChanged: (val) {
+                                  setState(() {
+                                    if (val) {
+                                      stereoChannels.add(ch);
+                                    } else {
+                                      stereoChannels.remove(ch);
+                                    }
+                                  });
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.darkGrey))),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('취소', style: TextStyle(color: Colors.white70)),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue),
+                    onPressed: () {
+                      ref.read(outputConfigProvider.notifier).save(monoChannels, stereoChannels);
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('확인', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
